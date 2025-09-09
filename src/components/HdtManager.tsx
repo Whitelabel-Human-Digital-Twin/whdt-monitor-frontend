@@ -9,6 +9,7 @@ export default function HdtManager() {
   const [hdtList, setHdtList] = useState<string[]>([]);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState("");
+  const [csvInput, setCsvInput] = useState<File | null>(null);
   const { history, subscribeToDT } = useMqtt();
 
   const fetchHdts = async () => {
@@ -49,6 +50,32 @@ export default function HdtManager() {
     }
   };
 
+  const uploadCsv = async () => {
+    if (!csvInput) return;
+
+    try {
+      const text = await csvInput.text(); // Read file content as string
+      const res = await fetch("/api/hdt/csv", {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/csv",
+        },
+        body: text,
+      });
+
+      if (res.ok) {
+        await fetchHdts(); // Refresh list
+        alert("CSV uploaded successfully!");
+        setCsvInput(null);
+      } else {
+        alert("Failed to upload CSV");
+      }
+    } catch (err) {
+      console.error("CSV upload failed", err);
+      alert("Error reading or uploading CSV");
+    }
+  }
+
   useEffect(() => {
     fetchHdts();
   }, []);
@@ -64,11 +91,30 @@ export default function HdtManager() {
           value={jsonInput}
           onChange={(e) => setJsonInput(e.target.value)}
         ></textarea>
+        <div className="mt-4">
+      </div>
+
         <button
           className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           onClick={createHdt}
         >
           Create DigitalTwin
+        </button>
+      </div>
+
+      <div className="w-full">
+        <input
+          type="file"
+          accept=".csv"
+          onChange={(e) => setCsvInput(e.target.files?.[0] || null)}
+          className="text-sm text-white"
+        />
+        <button
+          className="ml-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          onClick={uploadCsv}
+          disabled={!csvInput}
+        >
+          Upload CSV
         </button>
       </div>
 
