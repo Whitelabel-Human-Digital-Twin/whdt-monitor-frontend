@@ -3,6 +3,7 @@
 import { emptyStatusResponse, HdtStatusResponse, PropertyResponse } from "@/types/hdt";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Filter } from "./Filter";
 
 interface HdtDetailProps {
   id: string;
@@ -12,6 +13,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
   const [state, setState] = useState<HdtStatusResponse>(emptyStatusResponse());
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const [search, setSearch] = useState("");
 
   const fetchState = async () => {
     try {
@@ -36,12 +38,32 @@ export default function HdtDetail({ id }: HdtDetailProps) {
     return () => clearInterval(interval);
   }, [id]);
 
+    const filteredProperties = state.properties.filter((prop: PropertyResponse) => {
+      const q = search.trim();
+      if (!q) return true;
+
+      try {
+        const regex = new RegExp(q, "i");
+      return regex.test(prop.key);
+      } catch {
+      return true;
+      }
+    });
+
   return (
     <div className="bg-gray-900 text-white p-4 rounded shadow w-full">
       <h2 className="font-bold text-lg mb-2">State of {id}</h2>
       {loading ? (
         <p>Loading...</p>
       ) : (
+        <>
+          <Filter
+            value={search}
+            onChange={setSearch}
+            placeholder="Search property..."
+            className="mb-4 p-2 border border-gray-700 rounded bg-gray-900 text-white w-full"
+          />
+
         <table className="w-full text-sm text-left border border-gray-600 mt-2 text-white">
           <thead className="bg-gray-800 text-gray-300">
             <tr>
@@ -51,7 +73,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
             </tr>
           </thead>
           <tbody>
-            {state?.properties.map((prop: PropertyResponse) => {
+            {filteredProperties.map((prop: PropertyResponse) => {
               const valueMap = prop.value.valueMap
 
               const timestamp = valueMap["timestamp"]
@@ -78,6 +100,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
             })}
           </tbody>
         </table>
+        </>
       )}
     </div>
   );

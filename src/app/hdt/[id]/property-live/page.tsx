@@ -4,6 +4,7 @@
 import { use, useEffect, useState } from "react";
 import LiveLineChart from "@/components/LiveLineChart";
 import { PropertyResponse } from "@/types/hdt";
+import { Filter } from "@/components/Filter";
 
 interface PropertyListItemProps {
   propertyType: string;
@@ -28,6 +29,8 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
   const { id } = use(params);
   const [dtProperties, setDtProperties] = useState<string[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
 
   const fetchProperties = async () => {
     try {
@@ -41,6 +44,19 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
       setDtProperties([])
     }
   }
+
+  const filteredProperties = dtProperties.filter((prop) => {
+    const q = search.trim();
+    if (!q) return true;
+
+    try {
+      const regex = new RegExp(q, "i");
+    return regex.test(prop);
+    } catch {
+    return true;
+    }
+  });
+
 
   // Select first one as default
   useEffect(() => {
@@ -60,9 +76,18 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
   return (
     <div className="flex w-full h-full p-4 gap-4">
       {/* Left - Property list */}
-      <div className="w-1/4 bg-gray-900 rounded p-2 overflow-auto max-h-screen">
-        <h2 className="font-bold text-white mb-2">Properties</h2>
-        {dtProperties.map((type) => (
+    <div className="w-1/4 bg-gray-900 rounded p-2 overflow-auto max-h-screen">
+      <h2 className="font-bold text-white mb-2">Properties</h2>
+
+      <Filter
+        value={search}
+        onChange={setSearch}
+        placeholder="Search properties..."
+        className="mb-2 p-2 border border-gray-700 rounded bg-gray-800 text-white w-full"
+      />
+
+      {filteredProperties.map((type) => (
+
           <PropertyListItem
             key={type}
             propertyType={type}

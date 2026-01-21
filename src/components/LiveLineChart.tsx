@@ -9,6 +9,7 @@ import {
   ResponsiveContainer
 } from "recharts";
 import { useMqtt } from "@/context/MqttContext";
+import { useState } from "react";
 
 interface LiveLineChartProps {
   dtId: string;
@@ -17,9 +18,18 @@ interface LiveLineChartProps {
 
 export default function LiveLineChart({ dtId, propertyType }: LiveLineChartProps) {
   const { history } = useMqtt();
+  const [minutes, setMinutes] = useState(5);
   const propertyHistory = history[dtId]?.[propertyType] ?? [];
 
-  const chartData = propertyHistory.map((e) => {
+  const cutoff = Date.now() - minutes * 60 * 1000;
+
+  const filteredHistory = propertyHistory.filter((e) => {
+    const ts = e.value.valueMap["timestamp"]?.value;
+    return typeof ts === "number" && ts >= cutoff;
+  });
+
+
+  const chartData = filteredHistory.map((e) => {
     const values: Record<string, number> = {};
 
     for (const [k, v] of Object.entries(e.value.valueMap)) {
@@ -62,8 +72,21 @@ export default function LiveLineChart({ dtId, propertyType }: LiveLineChartProps
   }
 
   return (
+  <div>
+    <div className="mb-4">
+      <label className="text-white mr-2">Last minutes:</label>
+      <input
+        type="number"
+        min={1}
+        value={minutes}
+        onChange={(e) => setMinutes(Number(e.target.value))}
+        className="p-2 border border-gray-700 rounded bg-gray-900 text-white w-24"
+      />
+    </div>
+
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={chartData}>
+
         <XAxis
           dataKey="timestamp"
           stroke="#ccc"
@@ -93,5 +116,6 @@ export default function LiveLineChart({ dtId, propertyType }: LiveLineChartProps
         ))}
       </LineChart>
     </ResponsiveContainer>
+    </div>
   );
 }
