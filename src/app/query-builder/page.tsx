@@ -15,6 +15,7 @@ export default function QueryBuilderPage() {
     useState<FilterOperator>(">");
 
   const [filterValue, setFilterValue] = useState("");
+  const [results, setResults] = useState<Record<string, any>[]>([]);
 
   const filters = filterField
     ? [
@@ -36,7 +37,35 @@ export default function QueryBuilderPage() {
 
   const handleSubmit = () => {
     console.log("Generated query:", query);
+      // HARD CODED TEST DATA
+  const fakeResults = [
+    { name: "Anna", age: 24, heartRate: 72 },
+    { name: "Giovanni", age: 30, heartRate: 80 },
+    { name: "Jack", age: 27, heartRate: 75 },
+  ];
+
+  setResults(fakeResults);
   };
+
+  const exportToCSV = () => {
+    if (results.length === 0) return;
+
+    const headers = Object.keys(results[0]).join(",");
+    const rows = results
+      .map((row) => Object.values(row).join(","))
+      .join("\n");
+
+    const csvContent = headers + "\n" + rows;
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "query-results.csv";
+    link.click();
+  };
+
 
   useEffect(() => {
     const fetchDts = async () => {
@@ -57,10 +86,14 @@ export default function QueryBuilderPage() {
   }, []);
 
   return (
-    <div className="p-4 text-white">
-      <h1 className="text-xl font-bold mb-4">Query Builder</h1>
+  <div className="min-h-screen bg-gray-900 flex justify-center p-6">
+    <div className="w-full max-w-6xl bg-gray-800 p-8 rounded-xl shadow-xl text-white">
+      <h1 className="text-2xl font-bold mb-8 border-b border-gray-600 pb-3">Query Builder</h1>
+        <div className="flex gap-8 items-start">
+          <div className="w-1/2">
+
     
-    <div className="mb-4">
+    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
       <label className="block mb-1">Operation</label>
 
       {(["avg", "min", "max"] as AggregateOperation[]).map(op => (
@@ -76,18 +109,18 @@ export default function QueryBuilderPage() {
       ))}
     </div>
 
-    <div className="mb-4">
+    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
       <label className="block mb-1">Property</label>
 
       <input
-        className="p-2 bg-gray-800 border border-gray-600 rounded w-full"
+        className="p-2 bg-gray-800 border border-gray-600 rounded w-2/3"
         value={property}
         onChange={(e) => setProperty(e.target.value)}
         placeholder="e.g. heart-rate"
       />
     </div>
 
-    <div className="mb-4">
+    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
       <label className="block mb-1 font-semibold">Digital Twins</label>
 
       {loadingDts ? (
@@ -114,13 +147,18 @@ export default function QueryBuilderPage() {
       )}
     </div>
 
+    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+      <label className="block mb-2 font-semibold">Filter Property</label>
       <input
-        placeholder="property"
+        className="p-2 bg-gray-800 border border-gray-600 rounded w-full"
+        placeholder="e.g. age"
         value={filterField}
         onChange={(e) => setFilterField(e.target.value)}
       />
+    </div>
 
-      <div className="mb-4">
+
+      <div className="mb-6 p-4 bg-gray-700 rounded-lg">
         <label className="block mb-1 font-semibold">Operator</label>
 
         <div className="flex gap-2">
@@ -141,16 +179,70 @@ export default function QueryBuilderPage() {
         </div>
       </div>
 
-      <input
-        placeholder="value"
-        value={filterValue}
-        onChange={(e) => setFilterValue(e.target.value)}
-      />
+      <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+        <label className="block mb-2 font-semibold">Filter Value</label>
+        <input
+          className="p-2 bg-gray-800 border border-gray-600 rounded w-32"
+          placeholder="e.g. 25"
+          value={filterValue}
+          onChange={(e) => setFilterValue(e.target.value)}
+        />
+    </div>
 
-
-      <button onClick={handleSubmit} className="bg-blue-600 px-4 py-2 rounded">
+      <button onClick={handleSubmit} className="mt-4 bg-blue-600 hover:bg-blue-500 transition px-6 py-2 rounded-lg font-semibold w-full">
         Generate JSON
       </button>
     </div>
+    <div className="w-1/2">
+
+
+      {results.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-bold mb-4">Query Results</h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm rounded-lg overflow-hidden shadow-md">
+              <thead className="bg-gray-700 text-gray-200">
+                <tr>
+                  {Object.keys(results[0]).map((key) => (
+                    <th
+                      key={key}
+                      className="px-4 py-2 text-left font-semibold"
+                    >
+                      {key}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              <tbody>
+                {results.map((row, index) => (
+                  <tr key={index} className="border-t border-gray-700 hover:bg-gray-700 transition">
+                    {Object.values(row).map((value, i) => (
+                      <td
+                        key={i}
+                        className="px-4 py-2"
+                      >
+                        {value}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <button
+            onClick={exportToCSV}
+            className="mt-4 bg-green-600 hover:bg-green-500 transition px-6 py-2 rounded-lg font-semibold"
+          >
+            Export CSV
+          </button>
+        </div>
+      )}
+      </div>
+    </div>
+    </div>
+  </div>
   );
 }
