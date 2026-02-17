@@ -37,7 +37,18 @@ export default function QueryBuilderPage() {
 
   const handleSubmit = async () => {
     console.log("Generated query:", query);
-    const req = {propertyName: query.property, valueKey: query.filters[0].propertyName, operator:"GT", value: {type:"float-value", value:query.filters[0].value}}
+    
+    const filter = query.filters[0]
+    let op 
+    switch(filter.op) {
+      case ">": op = "GT"; break;
+      case "<": op = "LT"; break;
+      case "=": op = "EQ"; break;
+      case "<=": op = "LTE"; break;
+      case ">=": op = "GTE"; break;
+    }
+
+    const req = {propertyName: query.property, valueKey: filter.propertyName, operator:op, value: {type:"float-value", value:filter.value}}
     try {
       const response = await fetch("http://localhost:8081/api/hdts/findByPropertyComparison", {
         method: "POST",
