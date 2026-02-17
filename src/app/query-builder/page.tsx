@@ -35,16 +35,28 @@ export default function QueryBuilderPage() {
     dts,
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     console.log("Generated query:", query);
-      // HARD CODED TEST DATA
-  const fakeResults = [
-    { name: "Anna", age: 24, heartRate: 72 },
-    { name: "Giovanni", age: 30, heartRate: 80 },
-    { name: "Jack", age: 27, heartRate: 75 },
-  ];
+    const req = {propertyName: query.property, valueKey: query.filters[0].propertyName, operator:"GT", value: {type:"float-value", value:query.filters[0].value}}
+    try {
+      const response = await fetch("http://localhost:8081/api/hdts/findByPropertyComparison", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(req)
+        })
 
-  setResults(fakeResults);
+        if (!response.ok) {
+          throw new Error("Request failed");
+        }
+
+        const result = await response.json();
+        console.log(result);
+        setResults(result)
+    } catch (error) {
+      console.error(error);
+    } 
   };
 
   const exportToCSV = () => {
@@ -92,23 +104,6 @@ export default function QueryBuilderPage() {
         <div className="flex gap-8 items-start">
           <div className="w-1/2">
 
-    
-    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-      <label className="block mb-1">Operation</label>
-
-      {(["avg", "min", "max"] as AggregateOperation[]).map(op => (
-        <button
-          key={op}
-          onClick={() => setOperation(op)}
-          className={`mr-2 px-3 py-1 rounded ${
-            operation === op ? "bg-blue-700" : "bg-gray-700"
-          }`}
-      >
-          {op}
-        </button>
-      ))}
-    </div>
-
     <div className="mb-6 p-4 bg-gray-700 rounded-lg">
       <label className="block mb-1">Property</label>
 
@@ -118,33 +113,6 @@ export default function QueryBuilderPage() {
         onChange={(e) => setProperty(e.target.value)}
         placeholder="e.g. heart-rate"
       />
-    </div>
-
-    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-      <label className="block mb-1 font-semibold">Digital Twins</label>
-
-      {loadingDts ? (
-        <p className="text-gray-300">Loading DTs...</p>
-      ) : (
-        <div className="space-y-2">
-          {availableDts.map((dt) => (
-            <label key={dt} className="block">
-              <input
-                type="checkbox"
-                checked={dts.includes(dt)}
-                onChange={(e) =>
-                  setDts(
-                    e.target.checked
-                      ? [...dts, dt]
-                      : dts.filter((x) => x !== dt)
-                  )
-                }
-              />
-              <span className="ml-2">{dt}</span>
-            </label>
-          ))}
-        </div>
-      )}
     </div>
 
     <div className="mb-6 p-4 bg-gray-700 rounded-lg">
@@ -190,7 +158,7 @@ export default function QueryBuilderPage() {
     </div>
 
       <button onClick={handleSubmit} className="mt-4 bg-blue-600 hover:bg-blue-500 transition px-6 py-2 rounded-lg font-semibold w-full">
-        Generate JSON
+        Run Query
       </button>
     </div>
     <div className="w-1/2">
