@@ -9,7 +9,7 @@ export default function HdtManager() {
   const [hdtList, setHdtList] = useState<string[]>([]);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [jsonInput, setJsonInput] = useState("");
-  const [csvInput, setCsvInput] = useState<File | null>(null);
+  const [excelInput, setExcelInput] = useState<File | null>(null);
   const { history, subscribeToDT } = useMqtt();
 
   const fetchHdts = async () => {
@@ -50,29 +50,28 @@ export default function HdtManager() {
     }
   };
 
-  const uploadCsv = async () => {
-    if (!csvInput) return;
+  const uploadExcel = async () => {
+    if (!excelInput) return;
 
     try {
-      const text = await csvInput.text(); // Read file content as string
-      const res = await fetch("/api/hdt/csv", {
+      const form = new FormData();
+      form.append("file", excelInput, excelInput.name); // "file" must match the server fieldName
+
+      const res = await fetch("/api/v2/hdt", {
         method: "POST",
-        headers: {
-          "Content-Type": "text/csv",
-        },
-        body: text,
+        body: form, // <-- browser sets multipart + boundary
       });
 
       if (res.ok) {
         await fetchHdts(); // Refresh list
-        alert("CSV uploaded successfully!");
-        setCsvInput(null);
+        alert("Excel uploaded successfully!");
+        setExcelInput(null);
       } else {
-        alert("Failed to upload CSV");
+        alert("Failed to upload Excel");
       }
     } catch (err) {
-      console.error("CSV upload failed", err);
-      alert("Error reading or uploading CSV");
+      console.error("Excel upload failed", err);
+      alert("Error reading or uploading Excel file");
     }
   }
 
@@ -105,16 +104,16 @@ export default function HdtManager() {
       <div className="w-full">
         <input
           type="file"
-          accept=".csv"
-          onChange={(e) => setCsvInput(e.target.files?.[0] || null)}
+          accept=".xlsx, .xls"
+          onChange={(e) => setExcelInput(e.target.files?.[0] || null)}
           className="text-sm text-white"
         />
         <button
           className="ml-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          onClick={uploadCsv}
-          disabled={!csvInput}
+          onClick={uploadExcel}
+          disabled={!excelInput}
         >
-          Upload CSV
+          Upload Excel
         </button>
       </div>
 
