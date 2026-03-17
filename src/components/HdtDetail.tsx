@@ -1,24 +1,24 @@
 "use client";
 
-import { emptyStatusResponse, HdtStatusResponse, PropertyResponse } from "@/types/hdt";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Filter } from "./Filter";
+import { PropertyEventDocument } from "@/types/event/property_event";
 
 interface HdtDetailProps {
   id: string;
 }
 
 export default function HdtDetail({ id }: HdtDetailProps) {
-  const [state, setState] = useState<HdtStatusResponse>(emptyStatusResponse());
+  const [state, setState] = useState<PropertyEventDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [search, setSearch] = useState("");
 
   const fetchState = async () => {
     try {
-      const res = await fetch(`/api/hdt/${id}/state`);
-      const data: HdtStatusResponse = await res.json();
+      const res = await fetch(`/api/persistence/hdts/${id}/events`);
+      const data = await res.json();
       setState(data);
       console.log("Fetched state: ", data)
     } catch (err) {
@@ -38,13 +38,12 @@ export default function HdtDetail({ id }: HdtDetailProps) {
     return () => clearInterval(interval);
   }, [id]);
 
-    const filteredProperties = state.properties.filter((prop: PropertyResponse) => {
+    const filteredProperties = state.filter((p: PropertyEventDocument) => {
       const q = search.trim();
       if (!q) return true;
-
       try {
         const regex = new RegExp(q, "i");
-      return regex.test(prop.key);
+      return regex.test(p.metaField.propertyId);
       } catch {
       return true;
       }
@@ -67,34 +66,29 @@ export default function HdtDetail({ id }: HdtDetailProps) {
         <table className="w-full text-sm text-left border border-gray-600 mt-2 text-white">
           <thead className="bg-gray-800 text-gray-300">
             <tr>
-              <th className="p-2 border border-gray-600">Key</th>
+              <th className="p-2 border border-gray-600">Model</th>
+              <th className="p-2 border border-gray-600">Property</th>
               <th className="p-2 border border-gray-600">Value</th>
               <th className="p-2 border border-gray-600">Timestamp</th>
             </tr>
           </thead>
           <tbody>
-            {filteredProperties.map((prop: PropertyResponse) => {
-              const valueMap = prop.value.valueMap
-
-              const timestamp = valueMap["timestamp"]
-                ? new Date(valueMap["timestamp"].value as number).toLocaleString()
-                : "—";
-
-              const valueString = Object.entries(valueMap)
-                //filter out timestamp value as we already got it
-                .filter(([k]) => !["timestamp",].includes(k))
-                .map(([k, v]) => `${k}: ${v.value}`)
-                .join(", ");
+            {filteredProperties.map((prop: PropertyEventDocument) => {
+              const modelId = prop.metaField.modelId
+              const propertyId = prop.metaField.propertyId
+              const propertyName = prop.metaField.propertyName
+              const timestamp = new Date(prop.timeField)
 
               return (
                 <tr 
-                  key={prop.key} 
+                  key={propertyId} 
                   className="bg-gray-900 hover:bg-gray-800"
                   onClick={() => router.push(`/hdt/${id}/property-live`)}
                 >
-                  <td className="p-2 border border-gray-700">{prop.key}</td>
-                  <td className="p-2 border border-gray-700">{valueString || "—"}</td>
-                  <td className="p-2 border border-gray-700">{timestamp}</td>
+                  <td className="p-2 border border-gray-700">{modelId}</td>
+                  <td className="p-2 border border-gray-700">{propertyName}</td>
+                  <td className="p-2 border border-gray-700">{prop.value.value?.toString()}</td>
+                  <td className="p-2 border border-gray-700">{timestamp.toDateString()}</td>
                 </tr>
               );
             })}
