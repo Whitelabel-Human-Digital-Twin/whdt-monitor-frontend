@@ -3,16 +3,16 @@
 
 import { use, useEffect, useState } from "react";
 import LiveLineChart from "@/components/LiveLineChart";
-import { PropertyResponse } from "@/types/hdt";
 import { Filter } from "@/components/Filter";
+import { PropertyEventDocument } from "@/types/event/property_event";
 
 interface PropertyListItemProps {
-  propertyType: string;
+  propertyName: string;
   selected: boolean;
   onClick: () => void;
 }
 
-function PropertyListItem({ propertyType, selected, onClick }: PropertyListItemProps) {
+function PropertyListItem({ propertyName, selected, onClick }: PropertyListItemProps) {
   return (
     <div
       onClick={onClick}
@@ -20,57 +20,79 @@ function PropertyListItem({ propertyType, selected, onClick }: PropertyListItemP
         selected ? "bg-blue-700 text-white" : "bg-gray-800 text-gray-300"
       } hover:bg-blue-600`}
     >
-      {propertyType}
+      {propertyName}
     </div>
   );
 }
 
 export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [dtProperties, setDtProperties] = useState<string[]>([]);
+  const [dtProperties, setDtProperties] = useState<PropertyEventDocument[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [propertyHistory, setPropertyHistory] = useState<PropertyEventDocument[]>([])
 
 
   const fetchProperties = async () => {
     try {
-      let res = await fetch(`/api/hdt/${id}/state/properties`)
-      let data: Array<PropertyResponse> = await res.json()
-      let names = data.map(p => p.value).map(p => p.id)
-      console.log("Fetched properties: ", names)
-      setDtProperties(names)
+      const res = await fetch(`/api/persistence/hdts/${id}/events`)
+      const data = await res.json()
+      setDtProperties(data)
+      console.log("Fetched properties: ", data)
     } catch (err) {
       console.error("Failed to fetch DT properties:", err);
       setDtProperties([])
     }
   }
 
-  const filteredProperties = dtProperties.filter((prop) => {
-    const q = search.trim();
-    if (!q) return true;
-
+  const fetchPropertyHistory = async (dtId: string, pName: string) => {
     try {
-      const regex = new RegExp(q, "i");
-    return regex.test(prop);
-    } catch {
-    return true;
+      const request = {
+        hdtId: dtId,
+        propertyName: pName,
+      }
+      const body = JSON.stringify(request)
+      console.log(body)
+      const res = await fetch(`/api/persistence/hdts/events/propertyHistory`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: body
+      });
+      const data = await res.json();
+      setPropertyHistory(data)
+    } catch (err) {
+      console.error("Failed to fetch property history:", err);
     }
-  });
+  };
 
+  const filteredProperties = 
+    dtProperties
+      .filter((prop) => {
+        const q = search.trim();
+        if (!q) return true;
+        try {
+          const regex = new RegExp(q, "i");
+        return regex.test(prop.metaField.propertyId);
+        } catch {
+        return true;
+        }
+      })
+      .filter((p) => {
+        return typeof p.value.value === "number"
+      });
+
+  const propertyNames = filteredProperties.map((p) => p.metaField.propertyName)
 
   // Select first one as default
   useEffect(() => {
     fetchProperties()
 
     if (!selectedProperty) {
-      setSelectedProperty(dtProperties[0]);
+      setSelectedProperty(propertyNames[0]);
     }
-
-    const interval = setInterval(() => {
-      fetchProperties();
-    }, 5000); // Poll every 5 seconds
-
-    return () => clearInterval(interval);
   }, [id]);
 
   return (
@@ -86,13 +108,16 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
         className="mb-2 p-2 border border-gray-700 rounded bg-gray-800 text-white w-full"
       />
 
-      {filteredProperties.map((type) => (
+      {filteredProperties.map((e) => (
 
           <PropertyListItem
-            key={type}
-            propertyType={type}
-            selected={type === selectedProperty}
-            onClick={() => setSelectedProperty(type)}
+            key={e.metaField.propertyId}
+            propertyName={e.metaField.propertyName}
+            selected={e.metaField.propertyId === selectedProperty}
+            onClick={() => {
+              fetchPropertyHistory(e.metaField.hdtId, e.metaField.propertyName)
+              setSelectedProperty(e.metaField.propertyName)
+            }}
           />
         ))}
       </div>
@@ -103,10 +128,12 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
           Live Chart for <span className="text-blue-300">{selectedProperty}</span>
         </h2>
 
-        {selectedProperty ? (
+        {selectedProperty ? 
+          (
           <LiveLineChart
             dtId={id}
-            propertyType={selectedProperty}
+            pName={selectedProperty}
+            history={propertyHistory}
           />
         ) : (
           <p className="text-white">Select a property to view its live chart.</p>

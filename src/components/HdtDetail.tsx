@@ -59,7 +59,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
           <Filter
             value={search}
             onChange={setSearch}
-            placeholder="Search property..."
+            placeholder="Search property or model..."
             className="mb-4 p-2 border border-gray-700 rounded bg-gray-900 text-white w-full"
           />
 
