@@ -2,19 +2,20 @@
 
 import { useEffect, useState } from "react";
 import HdtDetail from "@/components/HdtDetail"; // adjust path based on your structure
+import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
 
 export default function HdtManager() {
-  const [hdtList, setHdtList] = useState<string[]>([]);
-  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [hdtList, setHdtList] = useState<HumanDigitalTwinDocument[]>([]);
+  const [highlightedDT, setHighlightedDT] = useState<HumanDigitalTwinDocument | null>(null);
   const [excelInput, setExcelInput] = useState<File | null>(null);
 
   const fetchHdts = async () => {
     try {
-      const res = await fetch("/api/hdt");
-      const data = await res.json();
+      const res = await fetch("/api/persistence/hdts");
+      const data: HumanDigitalTwinDocument[] = await res.json();
       setHdtList(data);
-      if (!highlightedId && data.length > 0) {
-        setHighlightedId(data[0]);
+      if (!highlightedDT && data.length > 0) {
+        setHighlightedDT(data[0]);
       }
     } catch (e) {
       console.error("Failed to fetch HDTs", e);
@@ -28,7 +29,7 @@ export default function HdtManager() {
       const form = new FormData();
       form.append("file", excelInput, excelInput.name); // "file" must match the server fieldName
 
-      const res = await fetch("/api/hdts/multipart", {
+      const res = await fetch("/api/creation/hdts/multipart", {
         method: "POST",
         body: form, // <-- browser sets multipart + boundary
       });
@@ -74,21 +75,24 @@ export default function HdtManager() {
         <div className="w-1/3 bg-gray-800 text-white p-4 rounded shadow">
           <h2 className="text-lg font-semibold mb-2">Available HumanDigitalTwins</h2>
           <ul className="space-y-1">
-            {hdtList.map((id) => (
-              <li
-                key={id}
-                onClick={() => setHighlightedId(id)}
-                className={`cursor-pointer hover:underline ${highlightedId === id ? "text-blue-400 font-bold" : "text-white"}`}
-              >
-                {id}
-              </li>
-            ))}
+            {hdtList.map((hdt) => {
+              const id = hdt.hdtId
+              return (
+                <li
+                  key={id}
+                  onClick={() => setHighlightedDT(hdt)}
+                  className={`cursor-pointer hover:underline ${highlightedDT?.hdtId === id ? "text-blue-400 font-bold" : "text-white"}`}
+                >
+                  {id}
+                </li>
+              )
+            })}
           </ul>
         </div>
 
         {/* HDT Details */}
         <div className="flex-1">
-          {highlightedId && <HdtDetail id={highlightedId} />}
+          {highlightedDT && <HdtDetail id={highlightedDT.hdtId} />}
         </div>
       </div>
     </div>
