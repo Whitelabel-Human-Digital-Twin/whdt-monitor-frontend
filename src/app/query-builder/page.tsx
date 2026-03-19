@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AggregateOperation } from "@/types/query";
+import { AggregateOperation, toWhdtComparisonOp } from "@/types/query";
 import { FilterOperator } from "@/types/query";
 import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
 import { ModelDocument } from "@/types/model/model";
@@ -86,7 +86,6 @@ export default function QueryBuilderPage() {
           "modelNames": query.models,
           "propertyName": query.property
         }
-        console.log(body)
         const res = await fetch("/api/persistence/hdts/events/aggregate", {
           method: "POST",
           headers: {
@@ -96,8 +95,31 @@ export default function QueryBuilderPage() {
           body: JSON.stringify(body)
         })
         const data = await res.json()
-        console.log(data)
         setResults(data)
+      } else if (queryMode === "search") {
+        const comparisons = query.filters?.map(f => {
+          return {
+            "propertyName": f.propertyName,
+            "comparison": toWhdtComparisonOp(f.op),
+            "value": {
+              "type": "double-value",
+              "value": f.value
+            }
+        }})
+        const body = {
+          "comparisons": comparisons
+        }
+        const res = await fetch("/api/persistence/hdts/aggregate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify(body)
+        })
+        const data: HumanDigitalTwinDocument[] = await res.json()
+        const r = data.map(m => ({hdtId:m}))
+        setResults(r)
       }
     } catch(err) {
       console.log("Failed to execute aggregate query: ", err)
@@ -213,6 +235,7 @@ export default function QueryBuilderPage() {
               </div>
             )}
 
+            {queryMode === "aggregate" && 
             <div className="mb-6 p-4 bg-gray-700 rounded-lg">
               <label className="block mb-2 font-semibold">
                 Property
@@ -223,7 +246,7 @@ export default function QueryBuilderPage() {
                 onChange={(e) => setProperty(e.target.value)}
                 placeholder="e.g. heart-rate"
               />
-            </div>
+            </div>}
 
             {/** HUMAN DIGITAL TWINS */}
             {queryMode === "aggregate" && (
