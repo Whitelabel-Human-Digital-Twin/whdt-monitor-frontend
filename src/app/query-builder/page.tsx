@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { AggregateOperation } from "@/types/query";
 import { FilterOperator } from "@/types/query";
+import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
+import { ModelDocument } from "@/types/model/model";
 
 type QueryMode = "aggregate" | "search";
 
@@ -18,11 +20,16 @@ export default function QueryBuilderPage() {
   const [operation, setOperation] = useState<AggregateOperation>("avg");
   const [property, setProperty] = useState("");
   const [dts, setDts] = useState<string[]>([]);
-  const [availableDts, setAvailableDts] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([])
+  const [hdtIds, setHdtIds] = useState<string[]>([])
+  const [modelNames, setModelNames] = useState<string[]>([])
   const [loadingDts, setLoadingDts] = useState(true);
-
   const [filters, setFilters] = useState<FilterType[]>([]);
   const [results, setResults] = useState<Record<string, any>[]>([]);
+
+  function distinct<T>(arr: T[]): T[] {
+    return [...new Set(arr)]
+  }
 
   const addFilter = () => {
     setFilters([...filters, { propertyName: "", op: ">", value: "" }]);
@@ -61,8 +68,8 @@ export default function QueryBuilderPage() {
           type: "aggregate",
           operation,
           property,
-          filters: normalizedFilters,
           dts,
+          models,
         }
       : {
           type: "search",
@@ -70,21 +77,35 @@ export default function QueryBuilderPage() {
           filters: normalizedFilters,
         };
 
-  const handleSubmit = () => {
-    console.log(
-      queryMode === "aggregate"
-        ? "Aggregate query:"
-        : "Search query:",
-      query
-    );
+  const handleSubmit = async () => {
+    try {
+      if (queryMode === "aggregate") {
+        const body = {
+          "hdtIds": query.dts,
+          "modelIds": [],
+          "modelNames": query.models,
+          "propertyName": query.property
+        }
+        console.log(body)
+        const res = await fetch("/api/persistence/hdts/events/aggregate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify(body)
+        })
+        const data = await res.json()
+        console.log(data)
+        setResults(data)
+      }
+    } catch(err) {
+      console.log("Failed to execute aggregate query: ", err)
+    }
+    
+    
 
-    const fakeResults = [
-      { name: "Anna", age: 24, heartRate: 72 },
-      { name: "Giovanni", age: 30, heartRate: 80 },
-      { name: "Jack", age: 27, heartRate: 75 },
-    ];
-
-    setResults(fakeResults);
+    //setResults(fakeResults);
   };
 
   const exportToCSV = () => {
@@ -106,23 +127,34 @@ export default function QueryBuilderPage() {
     link.click();
   };
 
+  const fetchDts = async () => {
+    try {
+      setLoadingDts(true);
+      const res = await fetch("/api/persistence/hdts");
+      const data: HumanDigitalTwinDocument[] = await res.json();
+      setHdtIds(data.map((hdt) => hdt.hdtId))
+    } catch (err) {
+      console.error("Failed to fetch DT list:", err);
+    } finally {
+      setLoadingDts(false);
+    }
+  };
+
+  const fetchModels = async () => {
+    try {
+      const res = await fetch("/api/persistence/hdts/models");
+      const data: ModelDocument[] = await res.json();
+      const names = data.map((m) => m.modelName)
+      setModelNames(distinct(names))
+    } catch (err) {
+      console.error("Failed to fetch Model list:", err);
+      setModelNames([]);
+    }
+  }
 
   useEffect(() => {
-    const fetchDts = async () => {
-      try {
-        setLoadingDts(true);
-        const res = await fetch("/api/hdt");
-        const data = await res.json();
-        setAvailableDts(data);
-      } catch (err) {
-        console.error("Failed to fetch DT list:", err);
-        setAvailableDts([]);
-      } finally {
-        setLoadingDts(false);
-      }
-    };
-
-    fetchDts();
+    fetchDts()
+    fetchModels()
   }, []);
 
   return (
@@ -193,6 +225,7 @@ export default function QueryBuilderPage() {
               />
             </div>
 
+            {/** HUMAN DIGITAL TWINS */}
             {queryMode === "aggregate" && (
               <div className="mb-6 p-4 bg-gray-700 rounded-lg">
                 <label className="block mb-2 font-semibold">
@@ -202,7 +235,7 @@ export default function QueryBuilderPage() {
                 {loadingDts ? (
                   <p>Loading...</p>
                 ) : (
-                  availableDts.map((dt) => (
+                  hdtIds.map((dt) => (
                     <label key={dt} className="block">
                       <input
                         type="checkbox"
@@ -222,91 +255,118 @@ export default function QueryBuilderPage() {
               </div>
             )}
 
-            <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-              <div className="flex justify-between items-center mb-4">
-                <label className="font-semibold">
-                  Filters
-                </label>
-                <button
-                  onClick={addFilter}
-                  className="bg-green-600 px-3 py-1 rounded text-sm"
-                >
-                  + Add Filter
-                </button>
-              </div>
+            {/** MODELS */}
+            {queryMode === "aggregate" && <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+              <label className="block mb-2 font-semibold">
+                  Models
+              </label>
+              {modelNames.map(n => 
+                (
+                  <label key={n} className="block">
+                      <input
+                        type="checkbox"
+                        checked={models.includes(n)}
+                        onChange={(e) =>
+                          setModels(
+                            e.target.checked
+                              ? [...models, n]
+                              : models.filter((x) => x !== n)
+                          )
+                        }
+                      />
+                      <span className="ml-2">{n}</span>
+                    </label>
+                )
+              )}
+            </div>}
 
-              {filters.map((filter, index) => (
-                <div
-                  key={index}
-                  className="flex gap-2 items-center mb-3"
-                >
-                  <input
-                    type="text"
-                    className="p-2 bg-gray-800 border border-gray-600 rounded w-32"
-                    placeholder="property"
-                    value={filter.propertyName}
-                    onChange={(e) =>
-                      updateFilter(
-                        index,
-                        "propertyName",
-                        e.target.value
-                      )
-                    }
-                  />
-
-                  <select
-                    className="p-2 bg-gray-800 border border-gray-600 rounded"
-                    value={filter.op}
-                    onChange={(e) =>
-                      updateFilter(
-                        index,
-                        "op",
-                        e.target.value
-                      )
-                    }
-                  >
-                    <option value="<">&lt;</option>
-                    <option value=">">&gt;</option>
-                    <option value="<=">&lt;=</option>
-                    <option value=">=">&gt;=</option>
-                    <option value="=">=</option>
-                  </select>
-
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    className="p-2 bg-gray-800 border border-gray-600 rounded w-24"
-                    placeholder="value"
-                    value={filter.value}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (/^\d*$/.test(v)) {
-                        updateFilter(
-                          index,
-                          "value",
-                          v
-                        );
-                      }
-                    }}
-                  />
-
+            {queryMode === "search" && (
+              <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+                <div className="flex justify-between items-center mb-4">
+                  <label className="font-semibold">
+                    Filters
+                  </label>
                   <button
-                    onClick={() =>
-                      removeFilter(index)
-                    }
-                    className="bg-red-600 px-2 py-1 rounded text-sm"
+                    onClick={addFilter}
+                    className="bg-green-600 px-3 py-1 rounded text-sm"
                   >
-                    X
+                    + Add Filter
                   </button>
                 </div>
-              ))}
+
+                {filters.map((filter, index) => (
+                  <div
+                    key={index}
+                    className="flex gap-2 items-center mb-3"
+                  >
+                    <input
+                      type="text"
+                      className="p-2 bg-gray-800 border border-gray-600 rounded w-32"
+                      placeholder="property"
+                      value={filter.propertyName}
+                      onChange={(e) =>
+                        updateFilter(
+                          index,
+                          "propertyName",
+                          e.target.value
+                        )
+                      }
+                    />
+
+                    <select
+                      className="p-2 bg-gray-800 border border-gray-600 rounded"
+                      value={filter.op}
+                      onChange={(e) =>
+                        updateFilter(
+                          index,
+                          "op",
+                          e.target.value
+                        )
+                      }
+                    >
+                      <option value="<">&lt;</option>
+                      <option value=">">&gt;</option>
+                      <option value="<=">&lt;=</option>
+                      <option value=">=">&gt;=</option>
+                      <option value="=">=</option>
+                    </select>
+
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      className="p-2 bg-gray-800 border border-gray-600 rounded w-24"
+                      placeholder="value"
+                      value={filter.value}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (/^\d*$/.test(v)) {
+                          updateFilter(
+                            index,
+                            "value",
+                            v
+                          );
+                        }
+                      }}
+                    />
+
+                    <button
+                      onClick={() =>
+                        removeFilter(index)
+                      }
+                      className="bg-red-600 px-2 py-1 rounded text-sm"
+                    >
+                      X
+                    </button>
+                  </div>
+                ))}
             </div>
+            )}
 
             <button
               onClick={handleSubmit}
               className="w-full bg-blue-600 hover:bg-blue-500 transition px-6 py-3 rounded-lg font-semibold"
             >
-              Generate JSON
+              Generate Query
             </button>
           </div>
 

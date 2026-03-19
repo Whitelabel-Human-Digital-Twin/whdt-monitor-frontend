@@ -12,6 +12,6 @@ export interface QueryFilter {
 export interface AggregateQuery {
   operation: AggregateOperation;
   property: string;
-  filters: QueryFilter[];
   dts: string[];
+  models: string[]
 }
