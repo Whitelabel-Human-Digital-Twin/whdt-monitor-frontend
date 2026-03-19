@@ -74,6 +74,7 @@ export default function QueryBuilderPage() {
       : {
           type: "search",
           property,
+          models,
           filters: normalizedFilters,
         };
 
@@ -107,7 +108,8 @@ export default function QueryBuilderPage() {
             }
         }})
         const body = {
-          "comparisons": comparisons
+          "comparisons": comparisons,
+          "modelNames": query.models,
         }
         const res = await fetch("/api/persistence/hdts/aggregate", {
           method: "POST",
@@ -279,7 +281,7 @@ export default function QueryBuilderPage() {
             )}
 
             {/** MODELS */}
-            {queryMode === "aggregate" && <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+            <div className="mb-6 p-4 bg-gray-700 rounded-lg">
               <label className="block mb-2 font-semibold">
                   Models
               </label>
@@ -301,7 +303,7 @@ export default function QueryBuilderPage() {
                     </label>
                 )
               )}
-            </div>}
+            </div>
 
             {queryMode === "search" && (
               <div className="mb-6 p-4 bg-gray-700 rounded-lg">
