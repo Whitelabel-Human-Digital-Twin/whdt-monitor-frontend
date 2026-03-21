@@ -17,14 +17,14 @@ interface LiveLineChartProps {
 }
 
 export default function LiveLineChart({ dtId, pName, history }: LiveLineChartProps) {
-  const chartData = history.map((e) => {
+  const chartData = history/*.map((e) => {
     const pv = e.value.value
     if (typeof pv === "number") {
       return {"value": pv}
     } else {
       return {"value": null}
     }
-  });
+  });*/
   console.log(chartData)
 
   if (chartData.length === 0 ) {
@@ -37,7 +37,7 @@ export default function LiveLineChart({ dtId, pName, history }: LiveLineChartPro
       <LineChart data={chartData}>
 
         <XAxis
-          dataKey="timestamp"
+          dataKey="timeField"
           stroke="#ccc"
           tickFormatter={(ts) =>
             typeof ts === "number"
@@ -55,7 +55,7 @@ export default function LiveLineChart({ dtId, pName, history }: LiveLineChartPro
         />
         <Line
             type="monotone"
-            dataKey={"value"}
+            dataKey={"value.value"}
             stroke="#00bfff"
             strokeWidth={2}
             dot={true}

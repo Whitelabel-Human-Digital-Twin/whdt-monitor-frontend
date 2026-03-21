@@ -5,6 +5,7 @@ import { use, useEffect, useState } from "react";
 import LiveLineChart from "@/components/LiveLineChart";
 import { Filter } from "@/components/Filter";
 import { PropertyEventDocument } from "@/types/event/property_event";
+import { distinct } from "@/util/utils";
 
 interface PropertyListItemProps {
   propertyName: string;
@@ -36,9 +37,8 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
   const fetchProperties = async () => {
     try {
       const res = await fetch(`/api/persistence/hdts/${id}/events`)
-      const data = await res.json()
+      const data: PropertyEventDocument[] = await res.json()
       setDtProperties(data)
-      console.log("Fetched properties: ", data)
     } catch (err) {
       console.error("Failed to fetch DT properties:", err);
       setDtProperties([])
@@ -52,7 +52,6 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
         propertyName: pName,
       }
       const body = JSON.stringify(request)
-      console.log(body)
       const res = await fetch(`/api/persistence/hdts/events/propertyHistory`, {
         method: "POST",
         headers: {
@@ -61,7 +60,7 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
         },
         body: body
       });
-      const data = await res.json();
+      const data: PropertyEventDocument[] = await res.json();
       setPropertyHistory(data)
     } catch (err) {
       console.error("Failed to fetch property history:", err);
@@ -69,22 +68,23 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
   };
 
   const filteredProperties = 
-    dtProperties
-      .filter((prop) => {
-        const q = search.trim();
-        if (!q) return true;
-        try {
-          const regex = new RegExp(q, "i");
-        return regex.test(prop.metaField.propertyId);
-        } catch {
-        return true;
-        }
+      dtProperties
+        .filter((prop) => {
+          const q = search.trim();
+          if (!q) return true;
+          try {
+            const regex = new RegExp(q, "i");
+            return regex.test(prop.metaField.propertyId);
+          } catch {
+            return true;
+          }
       })
       .filter((p) => {
         return typeof p.value.value === "number"
-      });
+      })
+    
 
-  const propertyNames = filteredProperties.map((p) => p.metaField.propertyName)
+  const propertyNames = distinct(filteredProperties.map((p) => p.metaField.propertyName))
 
   // Select first one as default
   useEffect(() => {
