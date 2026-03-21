@@ -5,6 +5,7 @@ import { AggregateOperation, toWhdtComparisonOp } from "@/types/query";
 import { FilterOperator } from "@/types/query";
 import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
 import { ModelDocument } from "@/types/model/model";
+import { distinct } from "@/util/utils";
 
 type QueryMode = "aggregate" | "search";
 
@@ -26,10 +27,6 @@ export default function QueryBuilderPage() {
   const [loadingDts, setLoadingDts] = useState(true);
   const [filters, setFilters] = useState<FilterType[]>([]);
   const [results, setResults] = useState<Record<string, any>[]>([]);
-
-  function distinct<T>(arr: T[]): T[] {
-    return [...new Set(arr)]
-  }
 
   const addFilter = () => {
     setFilters([...filters, { propertyName: "", op: ">", value: "" }]);
@@ -126,10 +123,6 @@ export default function QueryBuilderPage() {
     } catch(err) {
       console.log("Failed to execute aggregate query: ", err)
     }
-    
-    
-
-    //setResults(fakeResults);
   };
 
   const exportToCSV = () => {
