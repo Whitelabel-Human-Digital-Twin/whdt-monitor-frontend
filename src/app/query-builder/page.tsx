@@ -94,6 +94,7 @@ export default function QueryBuilderPage() {
           body: JSON.stringify(body)
         })
         const data = await res.json()
+        if (data.length === 0) alert("No matches found")
         setResults(data)
       } else if (queryMode === "search") {
         const comparisons = query.filters?.map(f => {
@@ -118,6 +119,7 @@ export default function QueryBuilderPage() {
           body: JSON.stringify(body)
         })
         const data: HdtPropertyMatches[] = await res.json()
+        if (data.length === 0) alert("No matches found")
         const r = data.map(match => {
           const row: Record<string, any> = { hdtId: match.hdtId }
           match.matchedEvents.forEach(e => {
