@@ -19,3 +19,15 @@ export interface PropertyEventDocument {
     timeField: string
     value: PropertyValue
 }
+
+export interface MatchEvent {
+    propertyName: string
+    value: PropertyValue
+    timeField: string
+}
+
+export interface HdtPropertyMatches {
+    hdtId: string
+    matchedProperties: string[]
+    matchedEvents: MatchEvent[]
+}

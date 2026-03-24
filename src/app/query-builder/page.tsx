@@ -6,6 +6,7 @@ import { FilterOperator } from "@/types/query";
 import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
 import { ModelDocument } from "@/types/model/model";
 import { distinct } from "@/util/utils";
+import { HdtPropertyMatches } from "@/types/event/property_event";
 
 type QueryMode = "aggregate" | "search";
 
@@ -116,8 +117,14 @@ export default function QueryBuilderPage() {
           },
           body: JSON.stringify(body)
         })
-        const data: HumanDigitalTwinDocument[] = await res.json()
-        const r = data.map(m => ({hdtId:m}))
+        const data: HdtPropertyMatches[] = await res.json()
+        const r = data.map(match => {
+          const row: Record<string, any> = { hdtId: match.hdtId }
+          match.matchedEvents.forEach(e => {
+            row[e.propertyName] = e.value.value
+          })
+          return row;
+        })
         setResults(r)
       }
     } catch(err) {
