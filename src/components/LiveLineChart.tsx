@@ -17,15 +17,7 @@ interface LiveLineChartProps {
 }
 
 export default function LiveLineChart({ dtId, pName, history }: LiveLineChartProps) {
-  const chartData = history/*.map((e) => {
-    const pv = e.value.value
-    if (typeof pv === "number") {
-      return {"value": pv}
-    } else {
-      return {"value": null}
-    }
-  });*/
-  console.log(chartData)
+  const chartData = history
 
   if (chartData.length === 0 ) {
     return <div>No data to display</div>;
