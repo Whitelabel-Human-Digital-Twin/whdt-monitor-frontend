@@ -1,6 +1,7 @@
 export interface PropertyEventMetadata {
     hdtId: string
     modelId: string
+    modelName: string
     propertyName: string
     propertyId: string
 }

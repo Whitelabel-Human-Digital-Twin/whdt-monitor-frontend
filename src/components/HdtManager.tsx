@@ -91,7 +91,7 @@ export default function HdtManager() {
         </div>
 
         {/* HDT Details */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {highlightedDT && <HdtDetail id={highlightedDT.hdtId} />}
         </div>
       </div>
