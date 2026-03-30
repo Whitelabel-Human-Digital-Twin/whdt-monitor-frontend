@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import HdtDetail from "@/components/HdtDetail"; // adjust path based on your structure
-import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
+import HdtDetail from "@/components/HdtDetail";
+import { api } from "@/lib/api/client";
+import { HumanDigitalTwinDocument } from "@/lib/api/schema";
 
 export default function HdtManager() {
   const [hdtList, setHdtList] = useState<HumanDigitalTwinDocument[]>([]);
@@ -11,11 +12,15 @@ export default function HdtManager() {
 
   const fetchHdts = async () => {
     try {
-      const res = await fetch("/api/persistence/hdts");
-      const data: HumanDigitalTwinDocument[] = await res.json();
-      setHdtList(data);
-      if (!highlightedDT && data.length > 0) {
-        setHighlightedDT(data[0]);
+      const res  = await api.GET("/hdts");
+      const data = res.data;
+      if (data) {
+        setHdtList(data);
+        if (!highlightedDT && (data).length > 0) {
+          setHighlightedDT(data[0]);
+        }
+      } else {
+        setHdtList([]);
       }
     } catch (e) {
       console.error("Failed to fetch HDTs", e);

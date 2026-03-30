@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AggregateOperation, toWhdtComparisonOp } from "@/types/query";
-import { FilterOperator } from "@/types/query";
-import { HumanDigitalTwinDocument } from "@/types/hdt/human_digital_twin";
-import { ModelDocument } from "@/types/model/model";
 import { distinct } from "@/util/utils";
-import { HdtPropertyMatches } from "@/types/event/property_event";
+import { 
+  AggregateOperation, 
+  FilterOperator, 
+  toWhdtComparisonOp 
+} from "@/app/query-builder/types/query";
+import { 
+  PropertiesByComparisonsAggregateRequest, 
+  PropertiesByComparisonsAggregateResponse, 
+  PropertyComparison, 
+  PropertyStatsRequest 
+} from "@/lib/api/schema";
+import { api } from "@/lib/api/client";
 
 type QueryMode = "aggregate" | "search";
 
@@ -79,55 +86,70 @@ export default function QueryBuilderPage() {
   const handleSubmit = async () => {
     try {
       if (queryMode === "aggregate") {
-        const body = {
-          "hdtIds": query.dts,
-          "modelIds": [],
-          "modelNames": query.models,
-          "propertyName": query.property
+        const body: PropertyStatsRequest = {
+          hdtIds: query.dts ?? [],
+          modelIds: [],
+          modelNames: query.models,
+          propertyName: query.property,
+        };
+
+        const { data, error } = await api.POST("/query/event/stats", {
+          body,
+        });
+
+        if (error) {
+          console.error(error);
+          alert("Request failed");
+          return;
         }
-        const res = await fetch("/api/persistence/hdts/events/aggregate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-          },
-          body: JSON.stringify(body)
-        })
-        const data = await res.json()
-        if (data.length === 0) alert("No matches found")
-        setResults(data)
+
+        if (!data || data.length === 0) {
+          alert("No matches found");
+          return;
+        }
+
+        setResults(data);
       } else if (queryMode === "search") {
-        const comparisons = query.filters?.map(f => {
-          return {
-            "propertyName": f.propertyName,
-            "comparison": toWhdtComparisonOp(f.op),
-            "value": {
-              "type": "double-value",
-              "value": f.value
-            }
-        }})
-        const body = {
-          "comparisons": comparisons,
-          "modelNames": query.models,
-        }
-        const res = await fetch("/api/persistence/hdts/aggregate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Accept": "application/json",
+        const comparisons: PropertyComparison[] =
+        query.filters?.map((f) => ({
+          propertyName: f.propertyName,
+          comparison: toWhdtComparisonOp(f.op),
+          value: {
+            value: f.value,
           },
-          body: JSON.stringify(body)
-        })
-        const data: HdtPropertyMatches[] = await res.json()
-        if (data.length === 0) alert("No matches found")
-        const r = data.map(match => {
-          const row: Record<string, any> = { hdtId: match.hdtId }
-          match.matchedEvents.forEach(e => {
-            row[e.propertyName] = e.value.value
-          })
-          return row;
-        })
-        setResults(r)
+        })) ?? [];
+
+      const body: PropertiesByComparisonsAggregateRequest = {
+        comparisons,
+        modelNames: query.models,
+      };
+
+      const { data, error } = await api.POST("/query/event/comparison", {
+        body,
+      });
+
+      if (error) {
+        console.error("Comparison query failed", error);
+        alert("Request failed");
+        return;
+      }
+
+      if (!data || data.matchedEvents.length === 0) {
+        alert("No matches found");
+        return;
+      }
+
+      const r = [data].map((match: PropertiesByComparisonsAggregateResponse) => {
+        const row: Record<string, unknown> = { hdtId: match.hdtId };
+
+        match.matchedEvents.forEach((e) => {
+          row[e.propertyName] = e.value.value;
+        });
+
+        return row;
+      });
+
+      setResults(r);
       }
     } catch(err) {
       console.log("Failed to execute aggregate query: ", err)
@@ -156,9 +178,11 @@ export default function QueryBuilderPage() {
   const fetchDts = async () => {
     try {
       setLoadingDts(true);
-      const res = await fetch("/api/persistence/hdts");
-      const data: HumanDigitalTwinDocument[] = await res.json();
-      setHdtIds(data.map((hdt) => hdt.hdtId))
+      const res = await api.GET("/hdts");
+      const data = res.data;
+      if (data) {
+        setHdtIds(data.map((hdt) => hdt.hdtId))
+      }
     } catch (err) {
       console.error("Failed to fetch DT list:", err);
     } finally {
@@ -168,10 +192,14 @@ export default function QueryBuilderPage() {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch("/api/persistence/hdts/models");
-      const data: ModelDocument[] = await res.json();
-      const names = data.map((m) => m.modelName)
-      setModelNames(distinct(names))
+      const res = await api.GET("/models");
+      const data = res.data;
+      if (data) {
+        const names = data.map((m) => m.modelName)
+        setModelNames(distinct(names))
+      } else {
+        setModelNames([]);
+      }
     } catch (err) {
       console.error("Failed to fetch Model list:", err);
       setModelNames([]);

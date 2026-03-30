@@ -8,7 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
-import { PropertyEventDocument } from "@/types/event/property_event";
+import { PropertyEventDocument } from "@/lib/api/schema";
 
 interface LiveLineChartProps {
   dtId: string;

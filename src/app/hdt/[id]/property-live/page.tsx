@@ -4,8 +4,9 @@
 import { use, useEffect, useMemo, useState } from "react";
 import LiveLineChart from "@/components/LiveLineChart";
 import { Filter } from "@/components/Filter";
-import { PropertyEventDocument } from "@/types/event/property_event";
 import { distinct } from "@/util/utils";
+import { PropertyEventDocument } from "@/lib/api/schema";
+import { api } from "@/lib/api/client";
 
 interface PropertyListItemProps {
   propertyName: string;
@@ -36,9 +37,12 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
 
   const fetchProperties = async () => {
     try {
-      const res = await fetch(`/api/persistence/hdts/${id}/events`)
-      const data: PropertyEventDocument[] = await res.json()
-      setDtProperties(data)
+      const res = await api.GET("/hdts/{id}/events", {
+        params: {
+          path: { id }
+        }
+      });
+      res.data ? setDtProperties(res.data) : setDtProperties([]);
     } catch (err) {
       console.error("Failed to fetch DT properties:", err);
       setDtProperties([])
