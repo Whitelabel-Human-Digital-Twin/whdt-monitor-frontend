@@ -505,6 +505,36 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type MqttPhysicalInterface = components['schemas']['mqtt-physical-interface'];
+export type PhysicalInterfaceImpl = components['schemas']['physical-interface-impl'];
+export type PhysicalInterface = components['schemas']['PhysicalInterface'];
+export type DigitalInterfaceImpl = components['schemas']['digital-interface-impl'];
+export type HttpDigitalInterface = components['schemas']['http-digital-interface'];
+export type MqttDigitalInterface = components['schemas']['mqtt-digital-interface'];
+export type DigitalInterface = components['schemas']['DigitalInterface'];
+export type Storage = components['schemas']['Storage'];
+export type HumanDigitalTwinDocument = components['schemas']['HumanDigitalTwinDocument'];
+export type Model = components['schemas']['model'];
+export type HumanDigitalTwin = components['schemas']['human-digital-twin'];
+export type ModelDocument = components['schemas']['ModelDocument'];
+export type PropertyEventMetadata = components['schemas']['PropertyEventMetadata'];
+export type BooleanValue = components['schemas']['boolean-value'];
+export type DoubleValue = components['schemas']['double-value'];
+export type EmptyValue = components['schemas']['empty-value'];
+export type FloatValue = components['schemas']['float-value'];
+export type IntValue = components['schemas']['int-value'];
+export type LongValue = components['schemas']['long-value'];
+export type StringValue = components['schemas']['string-value'];
+export type PropertyValue = components['schemas']['PropertyValue'];
+export type PropertyEventDocument = components['schemas']['PropertyEventDocument'];
+export type Property = components['schemas']['property'];
+export type PropertyValuesRequest = components['schemas']['PropertyValuesRequest'];
+export type PropertyStatsRequest = components['schemas']['PropertyStatsRequest'];
+export type PropertyStatsPerHdt = components['schemas']['PropertyStatsPerHdt'];
+export type PropertyComparison = components['schemas']['PropertyComparison'];
+export type PropertiesByComparisonsAggregateRequest = components['schemas']['PropertiesByComparisonsAggregateRequest'];
+export type EventMatch = components['schemas']['EventMatch'];
+export type PropertiesByComparisonsAggregateResponse = components['schemas']['PropertiesByComparisonsAggregateResponse'];
 export type $defs = Record<string, never>;
 export interface operations {
     "hdts/get": {
