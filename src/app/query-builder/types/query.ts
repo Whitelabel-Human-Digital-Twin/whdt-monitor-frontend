@@ -1,9 +1,13 @@
+import { PropertyComparison } from "@/lib/api/schema";
+
 // src/types/query.ts
 export type AggregateOperation = "avg" | "min" | "max";
 
 export type FilterOperator = "<" | ">" | "=" | "<=" | ">=";
 
-export function toWhdtComparisonOp(f: FilterOperator): string {
+type ComparisonOp = PropertyComparison["comparison"];
+
+export function toWhdtComparisonOp(f: FilterOperator): ComparisonOp {
   switch(f) {
     case "<": return "LT"
     case ">": return "GT"

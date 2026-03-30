@@ -3,10 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Filter } from "./Filter";
-import { PropertyEventDocument } from "@/types/event/property_event";
-import { ModelDocument } from "@/types/model/model";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
+import { ModelDocument, PropertyEventDocument } from "@/lib/api/schema";
+import { api } from "@/lib/api/client";
 
 interface HdtDetailProps {
   id: string;
@@ -22,10 +22,12 @@ export default function HdtDetail({ id }: HdtDetailProps) {
 
   const fetchState = async () => {
     try {
-      const res = await fetch(`/api/persistence/hdts/${id}/events`);
-      const data = await res.json();
-      setState(data);
-      console.log("Fetched state: ", data)
+      const res = await api.GET("/hdts/{id}/events",  {
+        params: { 
+          path: { id }
+        }
+      });
+      res.data ? setState(res.data) : setState([]);
     } catch (err) {
       console.error("Failed to fetch DT state:", err);
     } finally {
@@ -35,8 +37,13 @@ export default function HdtDetail({ id }: HdtDetailProps) {
 
   const fetchModels = async () => {
     try {
-      const res = await fetch(`/api/persistence/hdts/${id}/models`);
-      const data: ModelDocument[] = await res.json();
+      const res = await api.GET("/hdts/{id}/models", {
+        params: {
+          path: { id }
+        }
+      });
+      const data: ModelDocument[] = res.data || [];
+
       setModels(data);
 
       // Keep current selection if still valid, otherwise default to All
