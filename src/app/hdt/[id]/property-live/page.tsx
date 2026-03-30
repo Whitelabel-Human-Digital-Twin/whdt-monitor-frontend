@@ -1,7 +1,7 @@
 // app/hdt/[id]/property-live/page.tsx
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import LiveLineChart from "@/components/LiveLineChart";
 import { Filter } from "@/components/Filter";
 import { PropertyEventDocument } from "@/types/event/property_event";
@@ -67,8 +67,8 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
     }
   };
 
-  const filteredProperties = 
-      dtProperties
+  const filteredProperties = useMemo(() => {
+    return dtProperties
         .filter((prop) => {
           const q = search.trim();
           if (!q) return true;
@@ -82,16 +82,21 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
       .filter((p) => {
         return typeof p.value.value === "number"
       })
+  }, [dtProperties, search])
     
 
-  const propertyNames = distinct(filteredProperties.map((p) => p.metaField.propertyName))
+  const propertyNames = useMemo(() => {
+    return distinct(
+      filteredProperties.map((p) => p.metaField.propertyName)
+    )
+  }, [filteredProperties])
 
   // Select first one as default
   useEffect(() => {
     fetchProperties()
 
     if (!selectedProperty) {
-      setSelectedProperty(propertyNames[0]);
+      setSelectedProperty(propertyNames[0] || null);
     }
   }, [id]);
 

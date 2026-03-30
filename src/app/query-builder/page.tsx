@@ -137,7 +137,7 @@ export default function QueryBuilderPage() {
   const exportToCSV = () => {
     if (results.length === 0) return;
 
-    const headers = Object.keys(results[0]).join(",");
+    const headers = Object.keys(results[0] || {}).join(",");
     const rows = results
       .map((row) => Object.values(row).join(","))
       .join("\n");
