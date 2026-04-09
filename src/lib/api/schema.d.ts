@@ -281,6 +281,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PropertyComparisonDto: {
+            propertyName: string;
+            /** @enum {string} */
+            comparison: "GT" | "GTE" | "LT" | "LTE" | "EQ";
+            value: number | string | boolean;
+        };
+        PropertiesByComparisonsRequestDto: {
+            comparisons: components["schemas"]["PropertyComparisonDto"][];
+            modelNames?: string[] | null;
+            /** Format: date-time */
+            from?: string | null;
+            /** Format: date-time */
+            to?: string | null;
+        };
         /** mqtt-physical-interface */
         "mqtt-physical-interface": {
             hdtId: string;
@@ -505,6 +519,8 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type PropertyComparisonDto = components['schemas']['PropertyComparisonDto'];
+export type PropertiesByComparisonsRequestDto = components['schemas']['PropertiesByComparisonsRequestDto'];
 export type MqttPhysicalInterface = components['schemas']['mqtt-physical-interface'];
 export type PhysicalInterfaceImpl = components['schemas']['physical-interface-impl'];
 export type PhysicalInterface = components['schemas']['PhysicalInterface'];
@@ -975,6 +991,13 @@ export interface operations {
                     "application/json": components["schemas"]["PropertyEventDocument"][];
                 };
             };
+            /** @description POST /query/event/values/valuesById response 400 if empty request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     "query/event/values/byName": {
@@ -999,6 +1022,13 @@ export interface operations {
                     "application/json": components["schemas"]["PropertyEventDocument"][];
                 };
             };
+            /** @description POST /query/event/values/valuesByName response 400 if empty request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
         };
     };
     "query/event/values/history": {
@@ -1022,6 +1052,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PropertyEventDocument"][];
                 };
+            };
+            /** @description POST /query/event/values/history response 400 if empty request. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1056,9 +1093,9 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["PropertiesByComparisonsAggregateRequest"];
+                "application/json": components["schemas"]["PropertiesByComparisonsRequestDto"];
             };
         };
         responses: {
