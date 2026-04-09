@@ -51,21 +51,13 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
 
   const fetchPropertyHistory = async (dtId: string, pName: string) => {
     try {
-      const request = {
-        hdtId: dtId,
-        propertyName: pName,
-      }
-      const body = JSON.stringify(request)
-      const res = await fetch(`/api/persistence/hdts/events/propertyHistory`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: body
-      });
-      const data: PropertyEventDocument[] = await res.json();
-      setPropertyHistory(data)
+      const res = await api.POST("/query/event/values/history", {
+        body: [{
+          hdtId: dtId,
+          propertyName: pName,
+        }]
+      })
+      res.data ? setPropertyHistory(res.data) : setPropertyHistory([]);
     } catch (err) {
       console.error("Failed to fetch property history:", err);
     }
