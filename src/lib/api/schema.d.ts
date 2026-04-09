@@ -1105,7 +1105,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertiesByComparisonsAggregateResponse"];
+                    "application/json": components["schemas"]["PropertiesByComparisonsAggregateResponse"][];
                 };
             };
         };

@@ -10,7 +10,9 @@ import {
 import { 
   PropertiesByComparisonsAggregateRequest, 
   PropertiesByComparisonsAggregateResponse, 
+  PropertiesByComparisonsRequestDto, 
   PropertyComparison, 
+  PropertyComparisonDto, 
   PropertyStatsRequest 
 } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
@@ -110,16 +112,14 @@ export default function QueryBuilderPage() {
 
         setResults(data);
       } else if (queryMode === "search") {
-        const comparisons: PropertyComparison[] =
+        const comparisons: PropertyComparisonDto[] =
         query.filters?.map((f) => ({
           propertyName: f.propertyName,
           comparison: toWhdtComparisonOp(f.op),
-          value: {
-            value: f.value,
-          },
+          value: f.value,
         })) ?? [];
 
-      const body: PropertiesByComparisonsAggregateRequest = {
+      const body: PropertiesByComparisonsRequestDto = {
         comparisons,
         modelNames: query.models,
       };
@@ -134,15 +134,15 @@ export default function QueryBuilderPage() {
         return;
       }
 
-      if (!data || data.matchedEvents.length === 0) {
+      if (!data || data.length === 0) {
         alert("No matches found");
         return;
       }
 
-      const r = [data].map((match: PropertiesByComparisonsAggregateResponse) => {
+      const r = data.map((match: PropertiesByComparisonsAggregateResponse) => {
         const row: Record<string, unknown> = { hdtId: match.hdtId };
 
-        match.matchedEvents.forEach((e) => {
+        match.matchedEvents?.forEach((e) => {
           row[e.propertyName] = e.value.value;
         });
 
