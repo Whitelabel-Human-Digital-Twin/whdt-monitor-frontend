@@ -30,6 +30,19 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Fetch persistence service OpenAPI schema
+        uses: actions/checkout@v4
+        with:
+          repository: <your-org>/persistence-service
+          path: _persistence-service
+          sparse-checkout: src/main/resources/openapi/openapi.yaml
+          sparse-checkout-cone-mode: false
+          # If the repo is private, you'll need a token:
+          # token: ${{ secrets.PERSISTENCE_SERVICE_PAT }}
+
+      - name: Stage OpenAPI schema for codegen
+        run: cp _persistence-service/src/main/resources/openapi/openapi.yaml openapi.yaml
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
