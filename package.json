@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "gen:api": "openapi-typescript http://localhost:8081/openapi.yaml -o src/lib/api/schema.d.ts --root-types --root-types-no-schema-prefix"  },
+    "gen:api": "openapi-typescript http://localhost:8081/openapi.yaml -o src/lib/api/schema.d.ts --root-types --root-types-no-schema-prefix",
+    "gen:api:local": "openapi-typescript ./openapi.yaml -o src/lib/api/schema.d.ts"
+  },
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
