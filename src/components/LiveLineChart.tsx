@@ -8,12 +8,12 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
-import { PropertyEventDocument } from "@/lib/api/schema";
+import { PropertyObservationDocument } from "@/lib/api/schema";
 
 interface LiveLineChartProps {
   dtId: string;
   pName: string;
-  history: PropertyEventDocument[]
+  history: PropertyObservationDocument[]
 }
 
 export default function LiveLineChart({ dtId, pName, history }: LiveLineChartProps) {

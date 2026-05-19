@@ -4,9 +4,10 @@
 import { use, useEffect, useMemo, useState } from "react";
 import LiveLineChart from "@/components/LiveLineChart";
 import { Filter } from "@/components/Filter";
-import { distinct } from "@/util/utils";
-import { PropertyEventDocument } from "@/lib/api/schema";
+import { HdtSpecResponse, PropertyObservationDocument, PropertySpecEntry } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
+
+const NUMERIC_TYPES = ["INT", "LONG", "FLOAT", "DOUBLE"];
 
 interface PropertyListItemProps {
   propertyName: string;
@@ -29,25 +30,24 @@ function PropertyListItem({ propertyName, selected, onClick }: PropertyListItemP
 
 export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [dtProperties, setDtProperties] = useState<PropertyEventDocument[]>([]);
+  const [spec, setSpec] = useState<HdtSpecResponse | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [propertyHistory, setPropertyHistory] = useState<PropertyEventDocument[]>([])
+  const [propertyHistory, setPropertyHistory] = useState<PropertyObservationDocument[]>([]);
 
-
-  const fetchProperties = async () => {
+  const fetchSpec = async () => {
     try {
-      const res = await api.GET("/hdts/{id}/events", {
+      const res = await api.GET("/hdts/{id}/spec", {
         params: {
           path: { id }
         }
       });
-      res.data ? setDtProperties(res.data) : setDtProperties([]);
+      setSpec(res.data ?? null);
     } catch (err) {
-      console.error("Failed to fetch DT properties:", err);
-      setDtProperties([])
+      console.error("Failed to fetch HDT spec:", err);
+      setSpec(null);
     }
-  }
+  };
 
   const fetchPropertyHistory = async (dtId: string, pName: string) => {
     try {
@@ -56,68 +56,60 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
           hdtId: dtId,
           propertyName: pName,
         }]
-      })
-      res.data ? setPropertyHistory(res.data) : setPropertyHistory([]);
+      });
+      setPropertyHistory(res.data ?? []);
     } catch (err) {
       console.error("Failed to fetch property history:", err);
     }
   };
 
+  const numericProperties: PropertySpecEntry[] = useMemo(() =>
+    spec?.models.flatMap((m) =>
+      m.properties.filter((p) => NUMERIC_TYPES.includes(p.declaredType))
+    ) ?? [],
+    [spec]
+  );
+
   const filteredProperties = useMemo(() => {
-    return dtProperties
-        .filter((prop) => {
-          const q = search.trim();
-          if (!q) return true;
-          try {
-            const regex = new RegExp(q, "i");
-            return regex.test(prop.metaField.propertyId);
-          } catch {
-            return true;
-          }
-      })
-      .filter((p) => {
-        return typeof p.value.value === "number"
-      })
-  }, [dtProperties, search])
-    
+    const q = search.trim();
+    if (!q) return numericProperties;
+    try {
+      const regex = new RegExp(q, "i");
+      return numericProperties.filter((p) => regex.test(p.propertyName));
+    } catch {
+      return numericProperties;
+    }
+  }, [numericProperties, search]);
 
-  const propertyNames = useMemo(() => {
-    return distinct(
-      filteredProperties.map((p) => p.metaField.propertyName)
-    )
-  }, [filteredProperties])
-
-  // Select first one as default
   useEffect(() => {
-    fetchProperties()
+    fetchSpec();
 
     if (!selectedProperty) {
-      setSelectedProperty(propertyNames[0] || null);
+      setSelectedProperty(filteredProperties[0]?.propertyName ?? null);
     }
   }, [id]);
 
   return (
     <div className="flex w-full h-full p-4 gap-4">
       {/* Left - Property list */}
-    <div className="w-1/4 bg-gray-900 rounded p-2 overflow-auto max-h-screen">
-      <h2 className="font-bold text-white mb-2">Properties</h2>
+      <div className="w-1/4 bg-gray-900 rounded p-2 overflow-auto max-h-screen">
+        <h2 className="font-bold text-white mb-2">Properties</h2>
 
-      <Filter
-        value={search}
-        onChange={setSearch}
-        placeholder="Search properties..."
-        className="mb-2 p-2 border border-gray-700 rounded bg-gray-800 text-white w-full"
-      />
+        <Filter
+          value={search}
+          onChange={setSearch}
+          placeholder="Search properties..."
+          className="mb-2 p-2 border border-gray-700 rounded bg-gray-800 text-white w-full"
+        />
 
-      {filteredProperties.map((e) => (
-
+        {filteredProperties.map((p) => (
           <PropertyListItem
-            key={e.metaField.propertyId}
-            propertyName={e.metaField.propertyName}
-            selected={e.metaField.propertyId === selectedProperty}
+            key={p.propertyId}
+            propertyName={p.propertyName}
+            selected={p.propertyName === selectedProperty}
             onClick={() => {
-              fetchPropertyHistory(e.metaField.hdtId, e.metaField.propertyName)
-              setSelectedProperty(e.metaField.propertyName)
+              fetchPropertyHistory(id, p.propertyName);
+              setSelectedProperty(p.propertyName);
             }}
           />
         ))}
@@ -129,8 +121,7 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
           Live Chart for <span className="text-blue-300">{selectedProperty}</span>
         </h2>
 
-        {selectedProperty ? 
-          (
+        {selectedProperty ? (
           <LiveLineChart
             dtId={id}
             pName={selectedProperty}

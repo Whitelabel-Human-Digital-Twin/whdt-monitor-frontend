@@ -5,71 +5,95 @@ import { useEffect, useMemo, useState } from "react";
 import { Filter } from "./Filter";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { ModelDocument, PropertyEventDocument } from "@/lib/api/schema";
+import { HdtSpecResponse, PropertySnapshotEntry, PropertyValue } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
 
 interface HdtDetailProps {
   id: string;
 }
 
+type DisplayRow = {
+  modelName: string;
+  propertyId: string;
+  propertyName: string;
+  value: PropertyValue | null | undefined;
+  timestamp: string | null | undefined;
+};
+
 export default function HdtDetail({ id }: HdtDetailProps) {
-  const [state, setState] = useState<PropertyEventDocument[]>([]);
-  const [models, setModels] = useState<ModelDocument[]>([]);
+  const [spec, setSpec] = useState<HdtSpecResponse | null>(null);
+  const [snapshot, setSnapshot] = useState<PropertySnapshotEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedModelName, setSelectedModelName] = useState<string>("All");
 
-  const fetchState = async () => {
+  const fetchSpec = async () => {
     try {
-      const res = await api.GET("/hdts/{id}/events",  {
-        params: { 
+      const res = await api.GET("/hdts/{id}/spec", {
+        params: {
           path: { id }
         }
       });
-      res.data ? setState(res.data) : setState([]);
+      const data = res.data;
+      if (data) {
+        setSpec(data);
+        setSelectedModelName((prev) =>
+          prev === "All" || data.models.some((m) => m.modelName === prev) ? prev : "All"
+        );
+      }
     } catch (err) {
-      console.error("Failed to fetch DT state:", err);
+      console.error("Failed to fetch HDT spec:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchModels = async () => {
+  const fetchSnapshot = async () => {
     try {
-      const res = await api.GET("/hdts/{id}/models", {
+      const res = await api.GET("/hdts/{id}/snapshot", {
         params: {
           path: { id }
         }
       });
-      const data: ModelDocument[] = res.data || [];
-
-      setModels(data);
-
-      // Keep current selection if still valid, otherwise default to All
-      setSelectedModelName((prev) =>
-        prev === "All" || data.some((m) => m.modelName === prev) ? prev : "All"
-      );
+      setSnapshot(res.data ?? []);
     } catch (err) {
-      console.error("Failed to fetch models:", err);
+      console.error("Failed to fetch HDT snapshot:", err);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchState();
-    fetchModels();
+    fetchSpec();
+    fetchSnapshot();
 
     const interval = setInterval(() => {
-      fetchState();
-    }, 5000); // Poll every 5 seconds
+      fetchSnapshot();
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [id]);
 
-  const filteredProperties = useMemo(() => {
-    return state.filter((p: PropertyEventDocument) => {
+  const displayRows: DisplayRow[] = useMemo(() => {
+    if (!spec) return [];
+    const snapshotMap = new Map(snapshot.map((s) => [s.propertyId, s]));
+    return spec.models.flatMap((model) =>
+      model.properties.map((prop) => {
+        const obs = snapshotMap.get(prop.propertyId);
+        return {
+          modelName: model.modelName,
+          propertyId: prop.propertyId,
+          propertyName: prop.propertyName,
+          value: obs?.value ?? prop.initialValue,
+          timestamp: obs?.timestamp ?? null,
+        };
+      })
+    );
+  }, [spec, snapshot]);
+
+  const filteredRows = useMemo(() => {
+    return displayRows.filter((row) => {
       const matchesModel =
-        selectedModelName === "All" || p.metaField.modelName === selectedModelName;
+        selectedModelName === "All" || row.modelName === selectedModelName;
 
       if (!matchesModel) return false;
 
@@ -78,12 +102,12 @@ export default function HdtDetail({ id }: HdtDetailProps) {
 
       try {
         const regex = new RegExp(q, "i");
-        return regex.test(p.metaField.propertyName);
+        return regex.test(row.propertyName);
       } catch {
         return true;
       }
     });
-  }, [state, selectedModelName, search])
+  }, [displayRows, selectedModelName, search]);
 
   return (
     <div className="bg-gray-900 text-white p-4 rounded shadow w-full">
@@ -122,7 +146,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
               }}
             >
               <Tab value="All" label="All" />
-              {models.map((m) => (
+              {spec?.models.map((m) => (
                 <Tab key={m.modelId} value={m.modelName} label={m.modelName} />
               ))}
             </Tabs>
@@ -146,25 +170,24 @@ export default function HdtDetail({ id }: HdtDetailProps) {
                 </tr>
               </thead>
               <tbody>
-                {filteredProperties.map((prop: PropertyEventDocument) => {
-                  const modelId = prop.metaField.modelId;
-                  const propertyId = prop.metaField.propertyId;
-                  const propertyName = prop.metaField.propertyName;
-                  const timestamp = new Date(prop.timeField);
-
-                  return (
-                    <tr
-                      key={propertyId}
-                      className="bg-gray-900 hover:bg-gray-800"
-                      onClick={() => router.push(`/hdt/${id}/property-live`)}
-                    >
-                      <td className="p-2 border border-gray-700">{modelId}</td>
-                      <td className="p-2 border border-gray-700">{propertyName}</td>
-                      <td className="p-2 border border-gray-700">{prop.value.value?.toString()}</td>
-                      <td className="p-2 border border-gray-700">{timestamp.toDateString()}</td>
-                    </tr>
-                  );
-                })}
+                {filteredRows.map((row) => (
+                  <tr
+                    key={row.propertyId}
+                    className="bg-gray-900 hover:bg-gray-800"
+                    onClick={() => router.push(`/hdt/${id}/property-live`)}
+                  >
+                    <td className="p-2 border border-gray-700">{row.modelName}</td>
+                    <td className="p-2 border border-gray-700">{row.propertyName}</td>
+                    <td className="p-2 border border-gray-700">
+                      {row.value != null
+                        ? String((row.value as { value?: unknown }).value ?? "—")
+                        : "—"}
+                    </td>
+                    <td className="p-2 border border-gray-700">
+                      {row.timestamp ? new Date(row.timestamp).toDateString() : "—"}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

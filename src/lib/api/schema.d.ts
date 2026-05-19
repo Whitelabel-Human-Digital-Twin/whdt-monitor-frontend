@@ -84,10 +84,50 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get HDT's [Events]
-         * @description Get all Events of the specified HDT
+         * Get HDT's [Observations]
+         * @description Get all Observations of the specified HDT
          */
         get: operations["hdts/{id}/events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hdts/{id}/spec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get full HDT spec
+         * @description Assembles a full HDT spec from hdt, models, and properties collections
+         */
+        get: operations["hdts/{id}/spec"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/hdts/{id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get HDT snapshot
+         * @description Returns current value per property — latest observation or initialValue fallback
+         */
+        get: operations["hdts/{id}/snapshot"];
         put?: never;
         post?: never;
         delete?: never;
@@ -172,6 +212,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Property specs
+         * @description Return property specs filtered by hdtId and optional modelId
+         */
+        get: operations["properties/get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/properties/batch": {
         parameters: {
             query?: never;
@@ -182,10 +242,30 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * properties/insert
-         * @description Batch insert HDT's [Property] as Events
+         * Batch upsert Property specs
+         * @description Insert or update a list of Property specs for a given HDT
          */
-        post: operations["properties/insert"];
+        post: operations["properties/batch/upsert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/observations/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Batch insert [PropertyObservation]
+         * @description Batch insert PropertyObservation
+         */
+        post: operations["observations/batch/insert"];
         delete?: never;
         options?: never;
         head?: never;
@@ -201,7 +281,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Query Events by Id */
+        /** Query Observations by Id */
         post: operations["query/event/values/byId"];
         delete?: never;
         options?: never;
@@ -218,7 +298,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Query Events by Name */
+        /** Query Observations by Name */
         post: operations["query/event/values/byName"];
         delete?: never;
         options?: never;
@@ -235,7 +315,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Query Event history for a certain HDT */
+        /** Query Observation history for a certain HDT */
         post: operations["query/event/values/history"];
         delete?: never;
         options?: never;
@@ -269,7 +349,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Query Events by comparisons */
+        /** Query Observations by comparisons */
         post: operations["query/event/comparison"];
         delete?: never;
         options?: never;
@@ -400,6 +480,22 @@ export interface components {
             /** Format: date-time */
             lastUpdated?: string;
         };
+        /** io.github.whdt.db.property.PropertyDocument */
+        PropertyDocument: {
+            hdtId: string;
+            modelId: string;
+            propertyId: string;
+            propertyName: string;
+            description: string;
+            /** @enum {string} */
+            declaredType: "INT" | "LONG" | "FLOAT" | "DOUBLE" | "STRING" | "BOOLEAN";
+            initialValue?: components["schemas"]["PropertyValue"] | null;
+            metadata?: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            lastUpdated?: string;
+        };
         /** io.github.whdt.db.property.PropertyEventMetadata */
         PropertyEventMetadata: {
             hdtId: string;
@@ -436,22 +532,73 @@ export interface components {
         };
         /** io.github.whdt.core.hdt.model.property.PropertyValue */
         PropertyValue: components["schemas"]["boolean-value"] | components["schemas"]["double-value"] | components["schemas"]["empty-value"] | components["schemas"]["float-value"] | components["schemas"]["int-value"] | components["schemas"]["long-value"] | components["schemas"]["string-value"];
-        /** io.github.whdt.db.property.PropertyEventDocument */
-        PropertyEventDocument: {
+        /** io.github.whdt.db.property.PropertyObservationDocument */
+        PropertyObservationDocument: {
             metaField: components["schemas"]["PropertyEventMetadata"];
             /** Format: date-time */
             timeField: string;
             value: components["schemas"]["PropertyValue"];
+        };
+        /** io.github.whdt.core.hdt.model.property.PropertyObservation */
+        PropertyObservation: {
+            hdtId: string;
+            modelId: string;
+            propertyId: string;
+            propertyName: string;
+            value: components["schemas"]["PropertyValue"];
+            /** Format: date-time */
+            timestamp: string;
+            metadata?: {
+                [key: string]: string;
+            };
         };
         /** property */
         property: {
             modelId: string;
             name: string;
             description: string;
-            /** Format: date-time */
-            timestamp: string;
-            value: components["schemas"]["PropertyValue"];
+            /** @enum {string} */
+            declaredType: "INT" | "LONG" | "FLOAT" | "DOUBLE" | "STRING" | "BOOLEAN";
+            initialValue?: components["schemas"]["PropertyValue"] | null;
             id?: string;
+        };
+        /** io.github.whdt.db.assembler.PropertySpecEntry */
+        PropertySpecEntry: {
+            propertyId: string;
+            propertyName: string;
+            description: string;
+            declaredType: string;
+            initialValue?: components["schemas"]["PropertyValue"] | null;
+            metadata?: {
+                [key: string]: string;
+            };
+        };
+        /** io.github.whdt.db.assembler.ModelSpecEntry */
+        ModelSpecEntry: {
+            modelId: string;
+            modelName: string;
+            properties: components["schemas"]["PropertySpecEntry"][];
+        };
+        /** io.github.whdt.db.assembler.HdtSpecResponse */
+        HdtSpecResponse: {
+            hdtId: string;
+            physicalInterfaces: components["schemas"]["PhysicalInterface"][];
+            digitalInterfaces: components["schemas"]["DigitalInterface"][];
+            storages: components["schemas"]["Storage"][];
+            models: components["schemas"]["ModelSpecEntry"][];
+            metadata: {
+                [key: string]: string;
+            };
+        };
+        /** io.github.whdt.db.assembler.PropertySnapshotEntry */
+        PropertySnapshotEntry: {
+            propertyId: string;
+            propertyName: string;
+            value?: components["schemas"]["PropertyValue"] | null;
+            /** Format: date-time */
+            timestamp?: string | null;
+            /** @enum {string} */
+            source: "observation" | "initial_value";
         };
         /** io.github.whdt.routing.query.event.values.PropertyValuesRequest */
         PropertyValuesRequest: {
@@ -533,6 +680,7 @@ export type HumanDigitalTwinDocument = components['schemas']['HumanDigitalTwinDo
 export type Model = components['schemas']['model'];
 export type HumanDigitalTwin = components['schemas']['human-digital-twin'];
 export type ModelDocument = components['schemas']['ModelDocument'];
+export type PropertyDocument = components['schemas']['PropertyDocument'];
 export type PropertyEventMetadata = components['schemas']['PropertyEventMetadata'];
 export type BooleanValue = components['schemas']['boolean-value'];
 export type DoubleValue = components['schemas']['double-value'];
@@ -542,8 +690,13 @@ export type IntValue = components['schemas']['int-value'];
 export type LongValue = components['schemas']['long-value'];
 export type StringValue = components['schemas']['string-value'];
 export type PropertyValue = components['schemas']['PropertyValue'];
-export type PropertyEventDocument = components['schemas']['PropertyEventDocument'];
+export type PropertyObservationDocument = components['schemas']['PropertyObservationDocument'];
+export type PropertyObservation = components['schemas']['PropertyObservation'];
 export type Property = components['schemas']['property'];
+export type PropertySpecEntry = components['schemas']['PropertySpecEntry'];
+export type ModelSpecEntry = components['schemas']['ModelSpecEntry'];
+export type HdtSpecResponse = components['schemas']['HdtSpecResponse'];
+export type PropertySnapshotEntry = components['schemas']['PropertySnapshotEntry'];
 export type PropertyValuesRequest = components['schemas']['PropertyValuesRequest'];
 export type PropertyStatsRequest = components['schemas']['PropertyStatsRequest'];
 export type PropertyStatsPerHdt = components['schemas']['PropertyStatsPerHdt'];
@@ -728,17 +881,89 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Human Digital Twin Events */
+            /** @description Human Digital Twin Observations */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertyEventDocument"][];
+                    "application/json": components["schemas"]["PropertyObservationDocument"][];
                 };
             };
-            /** @description Human Digital Twin or Events not found */
+            /** @description Human Digital Twin or Observations not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "hdts/{id}/spec": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Full HDT spec */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HdtSpecResponse"];
+                };
+            };
+            /** @description Missing HDT id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description HDT or associated data not found */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "hdts/{id}/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Property snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertySnapshotEntry"][];
+                };
+            };
+            /** @description Missing HDT id */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description HDT or property specs not found */
+            500: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -939,28 +1164,97 @@ export interface operations {
             };
         };
     };
-    "properties/insert": {
+    "properties/get": {
         parameters: {
-            query?: never;
+            query: {
+                hdtId: string;
+                modelId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description A Human Digital Twin */
+        requestBody?: never;
+        responses: {
+            /** @description Property specs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDocument"][];
+                };
+            };
+            /** @description Missing hdtId query parameter */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "properties/batch/upsert": {
+        parameters: {
+            query: {
+                hdtId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List of Property specs */
         requestBody: {
             content: {
-                "application/json": components["schemas"]["human-digital-twin"];
+                "application/json": components["schemas"]["property"][];
             };
         };
         responses: {
-            /** @description HDT's [Property] created as Events */
+            /** @description Property specs upserted successfully */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Error creating Events */
+            /** @description Missing hdtId query parameter */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to upsert property specs */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "observations/batch/insert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description A list of PropertyObservation */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyObservation"][];
+            };
+        };
+        responses: {
+            /** @description Observations created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error creating observations */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -988,7 +1282,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertyEventDocument"][];
+                    "application/json": components["schemas"]["PropertyObservationDocument"][];
                 };
             };
             /** @description POST /query/event/values/valuesById response 400 if empty request. */
@@ -1019,7 +1313,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertyEventDocument"][];
+                    "application/json": components["schemas"]["PropertyObservationDocument"][];
                 };
             };
             /** @description POST /query/event/values/valuesByName response 400 if empty request. */
@@ -1050,7 +1344,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertyEventDocument"][];
+                    "application/json": components["schemas"]["PropertyObservationDocument"][];
                 };
             };
             /** @description POST /query/event/values/history response 400 if empty request. */
