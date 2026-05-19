@@ -33,7 +33,7 @@ jobs:
       - name: Fetch persistence service OpenAPI schema
         uses: actions/checkout@v4
         with:
-          repository: <your-org>/persistence-service
+          repository: Whitelabel-Human-Digital-Twin/persistence-service
           path: _persistence-service
           sparse-checkout: src/main/resources/openapi/openapi.yaml
           sparse-checkout-cone-mode: false
