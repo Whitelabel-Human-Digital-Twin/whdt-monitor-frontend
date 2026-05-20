@@ -60,5 +60,5 @@ jobs:
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
           claude_args: |
-            --allowed-tools "Bash(gh *), Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run gen:api:local)"
+            --allowed-tools "Bash(gh *), Bash(npm install),Bash(npm run build),Bash(npm run lint),Bash(npm run gen:api:local), Read, Write, Edit, MultiEdit"
 
