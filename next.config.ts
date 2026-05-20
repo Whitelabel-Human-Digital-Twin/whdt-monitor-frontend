@@ -1,17 +1,25 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from 'next';
+
+const creationServiceUrl =
+  process.env.CREATION_SERVICE_URL || 'http://localhost:8080';
+const persistenceServiceUrl =
+  process.env.PERSISTENCE_SERVICE_URL || 'http://localhost:8081';
+
+const nextConfig: NextConfig = {
+  output: 'standalone',
+  eslint: { ignoreDuringBuilds: true },
   async rewrites() {
     return [
       {
-        source: "/api/creation/:path*", // intercept /api/* calls
-        destination: "http://localhost:8080/api/:path*", // proxy to Ktor backend
+        source: '/api/creation/:path*',
+        destination: `${creationServiceUrl}/:path*`,
       },
       {
-        source: "/api/persistence/:path*", // intercept /api/* calls
-        destination: "http://localhost:8081/api/:path*", // proxy to Ktor backend
+        source: '/api/persistence/:path*',
+        destination: `${persistenceServiceUrl}/:path*`,
       },
     ];
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
