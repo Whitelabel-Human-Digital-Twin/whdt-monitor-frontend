@@ -44,3 +44,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            CREATION_SERVICE_URL=http://hdt-creation-service:8080
+            PERSISTENCE_SERVICE_URL=http://persistence-service:8081
