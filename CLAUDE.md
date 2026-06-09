@@ -45,6 +45,8 @@ HDT creation and Excel upload bypass the typed client and use raw `fetch` agains
 
 All components use `"use client"`. There are no server components beyond the root layout.
 
-`HdtDetail` polls `/hdts/{id}/events` every 5 seconds for live property updates. The property-live page fetches history on demand via `POST /query/event/values/history`.
+`HdtDetail` polls `/hdts/{id}/snapshot` every 5 seconds for live property updates. The property-live page fetches history on demand via `POST /query/event/values/history`.
 
-`src/app/query-builder/types/query.ts` defines the local `FilterOperator` type and maps it to the backend's `PropertyComparison` comparison enum (GT, LT, EQ, GTE, LTE).
+`src/app/query-builder/types/query.ts` defines the local `FilterOperator` type and maps it to the backend's `PropertyComparisonDto` comparison enum (GT, LT, EQ, GTE, LTE).
+
+The persistence spec (v0.2.0+) uses `tags` (not `metadata`) on `HumanDigitalTwinDocument`, `ModelDocument`, `PropertyDocument`, `PropertySpecEntry`, `ModelSpecEntry`, and `HdtSpecResponse`. `PropertyObservation.metadata` is unchanged.
