@@ -1,0 +1,1607 @@
+openapi: 3.1.1
+info:
+  title: whdt-persistence-api
+  version: v0.2.0
+paths:
+  /hdts:
+    post:
+      operationId: hdts/post
+      summary: Create HDT
+      description: Creates a new Human Digital Twin
+      requestBody:
+        description: The Representation of a Human Digital Twin
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/human-digital-twin'
+        required: true
+      responses:
+        '201':
+          description: HumanDigitalTwin created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HumanDigitalTwinDocument'
+    get:
+      operationId: hdts/get
+      summary: List HDTs
+      description: Returns all Human Digital Twins
+      responses:
+        '200':
+          description: All Human Digital Twins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HumanDigitalTwinDocument'
+    put:
+      operationId: hdts/put
+      summary: Create or Update HDT
+      description: Creates a new Human Digital Twin or updates an existing one
+      requestBody:
+        description: The Representation of a Human Digital Twin
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/human-digital-twin'
+        required: true
+      responses:
+        '200':
+          description: HumanDigitalTwin created or updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HumanDigitalTwinDocument'
+  /hdts/{id}:
+    put:
+      operationId: hdts/{id}/update
+      summary: Update HDT
+      description: Update a Human Digital Twin
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: The updated Human Digital Twin
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/human-digital-twin'
+        required: true
+      responses:
+        '200':
+          description: Human Digital Twin updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HumanDigitalTwinDocument'
+        '404':
+          description: Human Digital Twin to update not found
+    delete:
+      operationId: hdts/{id}/remove
+      summary: Remove HDT
+      description: Remove a Human Digital Twin
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Human Digital Twin removed
+        '404':
+          description: Human Digital Twin to remove not found
+    get:
+      operationId: hdts/{id}/get
+      summary: Get HDT
+      description: Get a Human Digital Twin by its ID
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Human Digital Twin found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HumanDigitalTwinDocument'
+        '404':
+          description: Human Digital Twin not found
+  /hdts/{id}/models:
+    get:
+      operationId: hdts/{id}/models
+      summary: Get HDT's Models
+      description: Get all Models of the specified HDT
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Human Digital Twin Models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelDocument'
+        '404':
+          description: Human Digital Twin not found
+  /hdts/{id}/observations:
+    get:
+      operationId: hdts/{id}/observations
+      summary: Get HDT's [Observations]
+      description: Get all Observations of the specified HDT
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Human Digital Twin Observations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyObservationDocument'
+        '404':
+          description: Human Digital Twin or Observations not found
+  /hdts/{id}/spec:
+    get:
+      operationId: hdts/{id}/spec
+      summary: Get full HDT spec
+      description: Assembles a full HDT spec from hdt, models, and properties collections
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Full HDT spec
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HdtSpecResponse'
+        '400':
+          description: Missing HDT id
+        '500':
+          description: HDT or associated data not found
+  /hdts/{id}/snapshot:
+    get:
+      operationId: hdts/{id}/snapshot
+      summary: Get HDT snapshot
+      description: Returns current value per property — latest observation or initialValue fallback
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Property snapshot
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertySnapshotEntry'
+        '400':
+          description: Missing HDT id
+        '500':
+          description: HDT or property specs not found
+  /hdts/batch:
+    put:
+      operationId: hdts/batch/update
+      summary: Batch update [HDT]
+      description: Update a list of Human Digital Twins
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/human-digital-twin'
+        required: true
+      responses:
+        '200':
+          description: Human Digital Twins updated
+        '500':
+          description: Update failed
+    post:
+      operationId: hdts/batch/insert
+      summary: Batch insert [HDT]
+      description: Insert a list of Human Digital Twins
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/human-digital-twin'
+        required: true
+      responses:
+        '200':
+          description: Human Digital Twins inserted
+        '500':
+          description: Insertion failed
+  /models:
+    put:
+      operationId: models/upsert
+      summary: Create or Update Model
+      description: Creates a new Model or updates it if already exists
+      requestBody:
+        description: The updated Model
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/model'
+        required: true
+      responses:
+        '200':
+          description: Upserted Successfully
+        '500':
+          description: Failed to upsert Model
+    post:
+      operationId: models/create
+      summary: Create Model
+      description: Creates a new model
+      requestBody:
+        description: The representation of an HDT's Model
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/model'
+        required: true
+      responses:
+        '201':
+          description: Created Successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelDocument'
+    get:
+      operationId: models/get
+      summary: List Models
+      description: Return all Models
+      responses:
+        '200':
+          description: All Models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ModelDocument'
+  /models/batch:
+    put:
+      operationId: models/batch/upsert
+      summary: Batch upsert [Model]
+      description: Insert or update a list of HDT Models
+      requestBody:
+        description: The list of HDT Models
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/model'
+        required: true
+      responses:
+        '200':
+          description: Upserted Successfully
+        '500':
+          description: Failed to upsert Models
+    post:
+      operationId: models/batch/insert
+      summary: Batch insert [Model]
+      description: Insert a list of HDT Models
+      requestBody:
+        description: The list of HDT Models
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/model'
+        required: true
+      responses:
+        '201':
+          description: Created Successfully
+        '500':
+          description: Failed to create Models
+  /hdts/{id}/properties:
+    get:
+      operationId: properties/get
+      summary: List Property specs
+      description: Return property specs for the specified HDT, optionally filtered by modelId
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: modelId
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Property specs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyDocument'
+        '400':
+          description: Missing HDT id
+  /hdts/{id}/properties/batch:
+    post:
+      operationId: properties/batch/upsert
+      summary: Batch upsert Property specs
+      description: Insert or update a list of Property specs for the specified HDT
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: List of Property specs
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/property'
+        required: true
+      responses:
+        '201':
+          description: Property specs upserted successfully
+        '400':
+          description: Missing HDT id
+        '500':
+          description: Failed to upsert property specs
+  /observations/batch:
+    post:
+      operationId: observations/batch/insert
+      summary: Batch insert [PropertyObservation]
+      description: Batch insert PropertyObservation
+      requestBody:
+        description: A list of PropertyObservation
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyObservation'
+        required: true
+      responses:
+        '201':
+          description: Observations created
+        '500':
+          description: Error creating observations
+  /query/property:
+    post:
+      operationId: query/property
+      summary: Query Property specs by tag predicate
+      description: Returns Property specs whose tags satisfy the given TagPredicate.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagPredicate'
+        required: true
+      responses:
+        '200':
+          description: Matching Property specs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyDocument'
+        '400':
+          description: Malformed TagPredicate body
+        '500':
+          description: Query failed
+  /query/event/values/valuesById:
+    post:
+      operationId: query/event/values/byId
+      summary: Query Observations by Id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyValuesRequest'
+        required: true
+      responses:
+        '200':
+          description: POST /query/event/values/valuesById response 200
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyObservationDocument'
+        '400':
+          description: POST /query/event/values/valuesById response 400 if empty request.
+  /query/event/values/valuesByName:
+    post:
+      operationId: query/event/values/byName
+      summary: Query Observations by Name
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyValuesRequest'
+        required: true
+      responses:
+        '200':
+          description: POST /query/event/values/valuesByName response 200
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyObservationDocument'
+        '400':
+          description: POST /query/event/values/valuesByName response 400 if empty request.
+  /query/event/values/history:
+    post:
+      operationId: query/event/values/history
+      summary: Query Observation history for a certain HDT
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PropertyValuesRequest'
+        required: true
+      responses:
+        '200':
+          description: POST /query/event/values/history response 200
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyObservationDocument'
+        '400':
+          description: POST /query/event/values/history response 400 if empty request.
+  /query/event/stats:
+    post:
+      operationId: query/event/stats
+      summary: Query Aggregate Stats
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertyStatsRequest'
+        required: true
+      responses:
+        '200':
+          description: POST /query/event/stats response 200
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertyStatsPerHdt'
+  /views:
+    get:
+      operationId: views/get
+      summary: List Views
+      description: Returns all stored Views
+      responses:
+        '200':
+          description: All Views
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ViewDocument'
+    post:
+      operationId: views/post
+      summary: Create View
+      description: Creates or replaces a View by name
+      requestBody:
+        description: The View spec to store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/View'
+        required: true
+      responses:
+        '201':
+          description: View created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewDocument'
+  /views/{name}:
+    get:
+      operationId: views/{name}/get
+      summary: Get View
+      description: Get a View by name
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: View found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewDocument'
+        '404':
+          description: View not found
+    put:
+      operationId: views/{name}/put
+      summary: Upsert View
+      description: Create or replace a View by name (path name takes precedence)
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: The updated View spec
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/View'
+        required: true
+      responses:
+        '200':
+          description: View upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ViewDocument'
+    delete:
+      operationId: views/{name}/delete
+      summary: Delete View
+      description: Delete a View by name
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '204':
+          description: View deleted
+        '404':
+          description: View not found
+  /views/{name}/execute:
+    post:
+      operationId: views/{name}/execute
+      summary: Execute View
+      description: Run a stored View against HDTs. Empty or absent hdtIds executes against all HDTs.
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        description: Optional scope — which HDT IDs to execute against
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteScopeRequest'
+        required: false
+      responses:
+        '200':
+          description: ViewResult per HDT id
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  $ref: '#/components/schemas/ViewResult'
+        '404':
+          description: View not found
+  /query/event/comparison:
+    post:
+      operationId: query/event/comparison
+      summary: Query Observations by comparisons
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropertiesByComparisonsRequestDto'
+      responses:
+        '200':
+          description: POST /query/event/comparison response 200
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PropertiesByComparisonsAggregateResponse'
+components:
+  schemas:
+    TagPredicate:
+      title: io.github.whdt.core.hdt.query.TagPredicate
+      oneOf:
+        - $ref: '#/components/schemas/TagPredicate-eq'
+        - $ref: '#/components/schemas/TagPredicate-in'
+        - $ref: '#/components/schemas/TagPredicate-has'
+        - $ref: '#/components/schemas/TagPredicate-and'
+        - $ref: '#/components/schemas/TagPredicate-or'
+        - $ref: '#/components/schemas/TagPredicate-not'
+      discriminator:
+        propertyName: type
+        mapping:
+          eq:  '#/components/schemas/TagPredicate-eq'
+          in:  '#/components/schemas/TagPredicate-in'
+          has: '#/components/schemas/TagPredicate-has'
+          and: '#/components/schemas/TagPredicate-and'
+          or:  '#/components/schemas/TagPredicate-or'
+          not: '#/components/schemas/TagPredicate-not'
+    TagPredicate-eq:
+      type: object
+      title: TagPredicate-eq
+      required: [type, key, value]
+      properties:
+        type:
+          type: string
+          enum: [eq]
+        key:
+          type: string
+        value:
+          type: string
+    TagPredicate-in:
+      type: object
+      title: TagPredicate-in
+      required: [type, key, values]
+      properties:
+        type:
+          type: string
+          enum: [in]
+        key:
+          type: string
+        values:
+          type: array
+          items:
+            type: string
+    TagPredicate-has:
+      type: object
+      title: TagPredicate-has
+      required: [type, key]
+      properties:
+        type:
+          type: string
+          enum: [has]
+        key:
+          type: string
+    TagPredicate-and:
+      type: object
+      title: TagPredicate-and
+      required: [type, terms]
+      properties:
+        type:
+          type: string
+          enum: [and]
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagPredicate'
+    TagPredicate-or:
+      type: object
+      title: TagPredicate-or
+      required: [type, terms]
+      properties:
+        type:
+          type: string
+          enum: [or]
+        terms:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagPredicate'
+    TagPredicate-not:
+      type: object
+      title: TagPredicate-not
+      required: [type, term]
+      properties:
+        type:
+          type: string
+          enum: [not]
+        term:
+          $ref: '#/components/schemas/TagPredicate'
+    PropertyComparisonDto:
+      type: object
+      required:
+        - propertyName
+        - comparison
+        - value
+      properties:
+        propertyName:
+          type: string
+        comparison:
+          type: string
+          enum: [ GT, GTE, LT, LTE, EQ ]
+        value:
+          oneOf:
+            - type: number
+            - type: string
+            - type: boolean
+    PropertiesByComparisonsRequestDto:
+      type: object
+      required:
+        - comparisons
+      properties:
+        comparisons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropertyComparisonDto'
+        modelNames:
+          type: array
+          items:
+            type: string
+          nullable: true
+        from:
+          type: string
+          format: date-time
+          nullable: true
+        to:
+          type: string
+          format: date-time
+          nullable: true
+    mqtt-physical-interface:
+      type: object
+      title: mqtt-physical-interface
+      required:
+      - hdtId
+      - name
+      properties:
+        hdtId:
+          type: string
+        name:
+          type: string
+        broker:
+          type: string
+        port:
+          type: integer
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        interfaceType:
+          type: string
+          enum:
+          - MQTT
+        id:
+          type: string
+    physical-interface-impl:
+      type: object
+      title: physical-interface-impl
+      required:
+      - interfaceType
+      - hdtId
+      - name
+      properties:
+        interfaceType:
+          type: string
+          enum:
+          - MQTT
+        hdtId:
+          type: string
+        name:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        id:
+          type: string
+    PhysicalInterface:
+      title: io.github.whdt.core.hdt.interfaces.physical.PhysicalInterface
+      oneOf:
+      - $ref: '#/components/schemas/mqtt-physical-interface'
+      - $ref: '#/components/schemas/physical-interface-impl'
+    digital-interface-impl:
+      type: object
+      title: digital-interface-impl
+      required:
+      - interfaceType
+      - hdtId
+      - name
+      properties:
+        interfaceType:
+          type: string
+          enum:
+          - MQTT
+          - HTTP
+        hdtId:
+          type: string
+        name:
+          type: string
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        id:
+          type: string
+    http-digital-interface:
+      type: object
+      title: http-digital-interface
+      required:
+      - hdtId
+      - name
+      properties:
+        hdtId:
+          type: string
+        name:
+          type: string
+        host:
+          type: string
+        port:
+          type: integer
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        interfaceType:
+          type: string
+          enum:
+          - HTTP
+        id:
+          type: string
+    mqtt-digital-interface:
+      type: object
+      title: mqtt-digital-interface
+      required:
+      - hdtId
+      - name
+      properties:
+        hdtId:
+          type: string
+        name:
+          type: string
+        broker:
+          type: string
+        port:
+          type: integer
+        config:
+          type: object
+          additionalProperties:
+            type: string
+        interfaceType:
+          type: string
+          enum:
+          - MQTT
+        id:
+          type: string
+    DigitalInterface:
+      title: io.github.whdt.core.hdt.interfaces.digital.DigitalInterface
+      oneOf:
+      - $ref: '#/components/schemas/digital-interface-impl'
+      - $ref: '#/components/schemas/http-digital-interface'
+      - $ref: '#/components/schemas/mqtt-digital-interface'
+    Storage:
+      type: object
+      title: io.github.whdt.core.hdt.storage.Storage
+      required:
+      - hdtId
+      - name
+      - storageType
+      properties:
+        hdtId:
+          type: string
+        name:
+          type: string
+        storageType:
+          type: string
+          enum:
+          - IN_MEMORY
+          - DB_MONGO
+          - DB_POSTGRESQL
+        id:
+          type: string
+    HumanDigitalTwinDocument:
+      type: object
+      title: io.github.whdt.db.hdt.HumanDigitalTwinDocument
+      required:
+      - hdtId
+      - physicalInterfaces
+      - digitalInterfaces
+      - storages
+      properties:
+        hdtId:
+          type: string
+        physicalInterfaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhysicalInterface'
+        digitalInterfaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigitalInterface'
+        storages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Storage'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+    model:
+      type: object
+      title: model
+      required:
+      - hdtId
+      - name
+      - description
+      - properties
+      properties:
+        hdtId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/property'
+        id:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        format:
+          type: string
+    human-digital-twin:
+      type: object
+      title: human-digital-twin
+      required:
+      - hdtId
+      properties:
+        hdtId:
+          type: string
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/model'
+        physicalInterfaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhysicalInterface'
+        digitalInterfaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigitalInterface'
+        storages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Storage'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+    ModelDocument:
+      type: object
+      title: io.github.whdt.db.model.ModelDocument
+      required:
+      - hdtId
+      - modelId
+      - modelName
+      - modelDescription
+      properties:
+        hdtId:
+          type: string
+        modelId:
+          type: string
+        modelName:
+          type: string
+        modelDescription:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        format:
+          type: string
+        lastUpdated:
+          type: string
+          format: date-time
+    PropertyDocument:
+      type: object
+      title: io.github.whdt.db.property.PropertyDocument
+      required:
+      - hdtId
+      - modelId
+      - propertyId
+      - propertyName
+      - description
+      - declaredType
+      properties:
+        hdtId:
+          type: string
+        modelId:
+          type: string
+        propertyId:
+          type: string
+        propertyName:
+          type: string
+        description:
+          type: string
+        declaredType:
+          type: string
+          enum:
+          - INT
+          - LONG
+          - FLOAT
+          - DOUBLE
+          - STRING
+          - BOOLEAN
+        initialValue:
+          $ref: '#/components/schemas/PropertyValue'
+          nullable: true
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        coding:
+          $ref: '#/components/schemas/Coding'
+          nullable: true
+        lastUpdated:
+          type: string
+          format: date-time
+    PropertyEventMetadata:
+      type: object
+      title: io.github.whdt.db.property.PropertyEventMetadata
+      required:
+      - hdtId
+      - modelId
+      - modelName
+      - propertyName
+      - propertyId
+      properties:
+        hdtId:
+          type: string
+        modelId:
+          type: string
+        modelName:
+          type: string
+        propertyName:
+          type: string
+        propertyId:
+          type: string
+    boolean-value:
+      type: object
+      title: boolean-value
+      required:
+      - value
+      properties:
+        value:
+          type: boolean
+    double-value:
+      type: object
+      title: double-value
+      required:
+      - value
+      properties:
+        value:
+          type: number
+    empty-value:
+      type: object
+      title: empty-value
+      properties: {}
+    float-value:
+      type: object
+      title: float-value
+      required:
+      - value
+      properties:
+        value:
+          type: number
+    int-value:
+      type: object
+      title: int-value
+      required:
+      - value
+      properties:
+        value:
+          type: integer
+    long-value:
+      type: object
+      title: long-value
+      required:
+      - value
+      properties:
+        value:
+          type: integer
+    string-value:
+      type: object
+      title: string-value
+      required:
+      - value
+      properties:
+        value:
+          type: string
+    PropertyValue:
+      title: io.github.whdt.core.hdt.model.property.PropertyValue
+      oneOf:
+      - $ref: '#/components/schemas/boolean-value'
+      - $ref: '#/components/schemas/double-value'
+      - $ref: '#/components/schemas/empty-value'
+      - $ref: '#/components/schemas/float-value'
+      - $ref: '#/components/schemas/int-value'
+      - $ref: '#/components/schemas/long-value'
+      - $ref: '#/components/schemas/string-value'
+    Coding:
+      type: object
+      title: io.github.whdt.core.hdt.model.property.Coding
+      required:
+      - system
+      - code
+      properties:
+        system:
+          type: string
+        code:
+          type: string
+    PropertyObservationDocument:
+      type: object
+      title: io.github.whdt.db.property.PropertyObservationDocument
+      required:
+      - metaField
+      - timeField
+      - value
+      properties:
+        metaField:
+          $ref: '#/components/schemas/PropertyEventMetadata'
+        timeField:
+          type: string
+          format: date-time
+        value:
+          $ref: '#/components/schemas/PropertyValue'
+    PropertyObservation:
+      type: object
+      title: io.github.whdt.core.hdt.model.property.PropertyObservation
+      required:
+      - hdtId
+      - modelId
+      - propertyId
+      - propertyName
+      - value
+      - timestamp
+      properties:
+        hdtId:
+          type: string
+        modelId:
+          type: string
+        propertyId:
+          type: string
+        propertyName:
+          type: string
+        value:
+          $ref: '#/components/schemas/PropertyValue'
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+    property:
+      type: object
+      title: property
+      required:
+      - modelId
+      - name
+      - description
+      - declaredType
+      properties:
+        modelId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        declaredType:
+          type: string
+          enum:
+          - INT
+          - LONG
+          - FLOAT
+          - DOUBLE
+          - STRING
+          - BOOLEAN
+        initialValue:
+          $ref: '#/components/schemas/PropertyValue'
+          nullable: true
+        id:
+          type: string
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        coding:
+          $ref: '#/components/schemas/Coding'
+          nullable: true
+    PropertySpecEntry:
+      type: object
+      title: io.github.whdt.db.assembler.PropertySpecEntry
+      required:
+      - propertyId
+      - propertyName
+      - description
+      - declaredType
+      properties:
+        propertyId:
+          type: string
+        propertyName:
+          type: string
+        description:
+          type: string
+        declaredType:
+          type: string
+        initialValue:
+          $ref: '#/components/schemas/PropertyValue'
+          nullable: true
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        coding:
+          $ref: '#/components/schemas/Coding'
+          nullable: true
+    ModelSpecEntry:
+      type: object
+      title: io.github.whdt.db.assembler.ModelSpecEntry
+      required:
+      - modelId
+      - modelName
+      - properties
+      properties:
+        modelId:
+          type: string
+        modelName:
+          type: string
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropertySpecEntry'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+        format:
+          type: string
+    HdtSpecResponse:
+      type: object
+      title: io.github.whdt.db.assembler.HdtSpecResponse
+      required:
+      - hdtId
+      - physicalInterfaces
+      - digitalInterfaces
+      - storages
+      - models
+      - tags
+      properties:
+        hdtId:
+          type: string
+        physicalInterfaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/PhysicalInterface'
+        digitalInterfaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/DigitalInterface'
+        storages:
+          type: array
+          items:
+            $ref: '#/components/schemas/Storage'
+        models:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelSpecEntry'
+        tags:
+          type: object
+          additionalProperties:
+            type: string
+    PropertySnapshotEntry:
+      type: object
+      title: io.github.whdt.db.assembler.PropertySnapshotEntry
+      required:
+      - propertyId
+      - propertyName
+      - source
+      properties:
+        propertyId:
+          type: string
+        propertyName:
+          type: string
+        value:
+          $ref: '#/components/schemas/PropertyValue'
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          nullable: true
+        source:
+          type: string
+          enum:
+          - observation
+          - initial_value
+    PropertyValuesRequest:
+      type: object
+      title: io.github.whdt.routing.query.event.values.PropertyValuesRequest
+      properties:
+        hdtId:
+          type: string
+        modelId:
+          type: string
+        propertyId:
+          type: string
+        propertyName:
+          type: string
+        from:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        to:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PropertyStatsRequest:
+      type: object
+      title: io.github.whdt.routing.query.event.stats.PropertyStatsRequest
+      required:
+      - hdtIds
+      - modelIds
+      - modelNames
+      - propertyName
+      properties:
+        hdtIds:
+          type: array
+          items:
+            type: string
+        modelIds:
+          type: array
+          items:
+            type: string
+        modelNames:
+          type: array
+          items:
+            type: string
+        propertyName:
+          type: string
+        from:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        to:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    PropertyStatsPerHdt:
+      type: object
+      title: io.github.whdt.routing.query.event.stats.PropertyStatsPerHdt
+      required:
+      - hdtId
+      - count
+      properties:
+        hdtId:
+          type: string
+        count:
+          type: integer
+        avg:
+          type:
+          - number
+          - 'null'
+        min:
+          type:
+          - number
+          - 'null'
+        max:
+          type:
+          - number
+          - 'null'
+    PropertyComparison:
+      type: object
+      title: io.github.whdt.routing.query.event.comparison.PropertyComparison
+      required:
+      - propertyName
+      - comparison
+      - value
+      properties:
+        propertyName:
+          type: string
+        comparison:
+          type: string
+          enum:
+          - GT
+          - GTE
+          - LT
+          - LTE
+          - EQ
+        value:
+          $ref: '#/components/schemas/PropertyValue'
+    PropertiesByComparisonsAggregateRequest:
+      type: object
+      title: io.github.whdt.routing.query.event.comparison.PropertiesByComparisonsAggregateRequest
+      required:
+      - comparisons
+      properties:
+        comparisons:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropertyComparison'
+        modelNames:
+          type:
+          - array
+          - 'null'
+          items:
+            type: string
+        from:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        to:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    EventMatch:
+      type: object
+      title: io.github.whdt.routing.query.event.comparison.EventMatch
+      required:
+      - propertyName
+      - value
+      - timeField
+      properties:
+        propertyName:
+          type: string
+        value:
+          $ref: '#/components/schemas/PropertyValue'
+        timeField:
+          type: string
+          format: date-time
+    PropertiesByComparisonsAggregateResponse:
+      type: object
+      title: io.github.whdt.routing.query.event.comparison.PropertiesByComparisonsAggregateResponse
+      required:
+      - hdtId
+      - matchedProperties
+      - matchedEvents
+      properties:
+        hdtId:
+          type: string
+        matchedProperties:
+          type: array
+          items:
+            type: string
+        matchedEvents:
+          type: array
+          items:
+            $ref: '#/components/schemas/EventMatch'
+    View:
+      type: object
+      title: io.github.whdt.core.hdt.view.View
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        predicate:
+          $ref: '#/components/schemas/TagPredicate'
+          nullable: true
+        groupByKeys:
+          type: array
+          items:
+            type: string
+    ViewDocument:
+      type: object
+      title: io.github.whdt.db.view.ViewDocument
+      required:
+      - name
+      properties:
+        name:
+          type: string
+        predicate:
+          $ref: '#/components/schemas/TagPredicate'
+          nullable: true
+        groupByKeys:
+          type: array
+          items:
+            type: string
+    ViewResult:
+      title: io.github.whdt.core.hdt.view.ViewResult
+      description: >
+        Result of executing a View. Either a flat list of matching properties
+        or a grouped result keyed by a tag value.
+        Observed serialized shape of ViewResult.Grouped:
+          {"type":"grouped","key":"<groupByKey>","buckets":[[<tagValue_or_null>,{"type":"flat","properties":[...]}],...]}
+        The buckets field is a list of [key, flat-result] pairs (BucketListSerializer) to support null bucket keys.
+      oneOf:
+        - $ref: '#/components/schemas/ViewResult-flat'
+        - $ref: '#/components/schemas/ViewResult-grouped'
+      discriminator:
+        propertyName: type
+        mapping:
+          flat: '#/components/schemas/ViewResult-flat'
+          grouped: '#/components/schemas/ViewResult-grouped'
+    ViewResult-flat:
+      type: object
+      title: ViewResult-flat
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          enum: [flat]
+        properties:
+          type: array
+          items:
+            $ref: '#/components/schemas/property'
+    ViewResult-grouped:
+      type: object
+      title: ViewResult-grouped
+      required:
+      - type
+      - key
+      - buckets
+      properties:
+        type:
+          type: string
+          enum: [grouped]
+        key:
+          type: string
+        buckets:
+          type: array
+          description: List of [bucketKey, ViewResult.Flat] pairs; bucketKey may be null for properties with no value for the groupByKey tag.
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            prefixItems:
+              - type: string
+                nullable: true
+              - $ref: '#/components/schemas/ViewResult-flat'
+    ExecuteScopeRequest:
+      type: object
+      title: io.github.whdt.routing.view.ExecuteScopeRequest
+      properties:
+        hdtIds:
+          type: array
+          items:
+            type: string
+          description: HDT IDs to execute against. Empty or absent means all HDTs.

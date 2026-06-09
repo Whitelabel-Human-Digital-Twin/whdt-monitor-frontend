@@ -16,7 +16,11 @@ export interface paths {
          * @description Returns all Human Digital Twins
          */
         get: operations["hdts/get"];
-        put?: never;
+        /**
+         * Create or Update HDT
+         * @description Creates a new Human Digital Twin or updates an existing one
+         */
+        put: operations["hdts/put"];
         /**
          * Create HDT
          * @description Creates a new Human Digital Twin
@@ -76,7 +80,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/hdts/{id}/events": {
+    "/hdts/{id}/observations": {
         parameters: {
             query?: never;
             header?: never;
@@ -87,7 +91,7 @@ export interface paths {
          * Get HDT's [Observations]
          * @description Get all Observations of the specified HDT
          */
-        get: operations["hdts/{id}/events"];
+        get: operations["hdts/{id}/observations"];
         put?: never;
         post?: never;
         delete?: never;
@@ -212,7 +216,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/properties": {
+    "/hdts/{id}/properties": {
         parameters: {
             query?: never;
             header?: never;
@@ -221,7 +225,7 @@ export interface paths {
         };
         /**
          * List Property specs
-         * @description Return property specs filtered by hdtId and optional modelId
+         * @description Return property specs for the specified HDT, optionally filtered by modelId
          */
         get: operations["properties/get"];
         put?: never;
@@ -232,7 +236,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/properties/batch": {
+    "/hdts/{id}/properties/batch": {
         parameters: {
             query?: never;
             header?: never;
@@ -243,7 +247,7 @@ export interface paths {
         put?: never;
         /**
          * Batch upsert Property specs
-         * @description Insert or update a list of Property specs for a given HDT
+         * @description Insert or update a list of Property specs for the specified HDT
          */
         post: operations["properties/batch/upsert"];
         delete?: never;
@@ -266,6 +270,26 @@ export interface paths {
          * @description Batch insert PropertyObservation
          */
         post: operations["observations/batch/insert"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/query/property": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Query Property specs by tag predicate
+         * @description Returns Property specs whose tags satisfy the given TagPredicate.
+         */
+        post: operations["query/property"];
         delete?: never;
         options?: never;
         head?: never;
@@ -340,6 +364,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Views
+         * @description Returns all stored Views
+         */
+        get: operations["views/get"];
+        put?: never;
+        /**
+         * Create View
+         * @description Creates or replaces a View by name
+         */
+        post: operations["views/post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/views/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get View
+         * @description Get a View by name
+         */
+        get: operations["views/{name}/get"];
+        /**
+         * Upsert View
+         * @description Create or replace a View by name (path name takes precedence)
+         */
+        put: operations["views/{name}/put"];
+        post?: never;
+        /**
+         * Delete View
+         * @description Delete a View by name
+         */
+        delete: operations["views/{name}/delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/views/{name}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Execute View
+         * @description Run a stored View against HDTs. Empty or absent hdtIds executes against all HDTs.
+         */
+        post: operations["views/{name}/execute"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/query/event/comparison": {
         parameters: {
             query?: never;
@@ -361,6 +457,64 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** io.github.whdt.core.hdt.query.TagPredicate */
+        TagPredicate: components["schemas"]["TagPredicate-eq"] | components["schemas"]["TagPredicate-in"] | components["schemas"]["TagPredicate-has"] | components["schemas"]["TagPredicate-and"] | components["schemas"]["TagPredicate-or"] | components["schemas"]["TagPredicate-not"];
+        /** TagPredicate-eq */
+        "TagPredicate-eq": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "eq";
+            key: string;
+            value: string;
+        };
+        /** TagPredicate-in */
+        "TagPredicate-in": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "in";
+            key: string;
+            values: string[];
+        };
+        /** TagPredicate-has */
+        "TagPredicate-has": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "has";
+            key: string;
+        };
+        /** TagPredicate-and */
+        "TagPredicate-and": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "and";
+            terms: components["schemas"]["TagPredicate"][];
+        };
+        /** TagPredicate-or */
+        "TagPredicate-or": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "or";
+            terms: components["schemas"]["TagPredicate"][];
+        };
+        /** TagPredicate-not */
+        "TagPredicate-not": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "not";
+            term: components["schemas"]["TagPredicate"];
+        };
         PropertyComparisonDto: {
             propertyName: string;
             /** @enum {string} */
@@ -454,6 +608,9 @@ export interface components {
             physicalInterfaces: components["schemas"]["PhysicalInterface"][];
             digitalInterfaces: components["schemas"]["DigitalInterface"][];
             storages: components["schemas"]["Storage"][];
+            tags?: {
+                [key: string]: string;
+            };
         };
         /** model */
         model: {
@@ -462,6 +619,10 @@ export interface components {
             description: string;
             properties: components["schemas"]["property"][];
             id?: string;
+            tags?: {
+                [key: string]: string;
+            };
+            format?: string;
         };
         /** human-digital-twin */
         "human-digital-twin": {
@@ -470,6 +631,9 @@ export interface components {
             physicalInterfaces?: components["schemas"]["PhysicalInterface"][];
             digitalInterfaces?: components["schemas"]["DigitalInterface"][];
             storages?: components["schemas"]["Storage"][];
+            tags?: {
+                [key: string]: string;
+            };
         };
         /** io.github.whdt.db.model.ModelDocument */
         ModelDocument: {
@@ -477,6 +641,10 @@ export interface components {
             modelId: string;
             modelName: string;
             modelDescription: string;
+            tags?: {
+                [key: string]: string;
+            };
+            format?: string;
             /** Format: date-time */
             lastUpdated?: string;
         };
@@ -489,10 +657,11 @@ export interface components {
             description: string;
             /** @enum {string} */
             declaredType: "INT" | "LONG" | "FLOAT" | "DOUBLE" | "STRING" | "BOOLEAN";
-            initialValue?: components["schemas"]["PropertyValue"] | null;
-            metadata?: {
+            initialValue?: components["schemas"]["PropertyValue"];
+            tags?: {
                 [key: string]: string;
             };
+            coding?: components["schemas"]["Coding"];
             /** Format: date-time */
             lastUpdated?: string;
         };
@@ -532,6 +701,11 @@ export interface components {
         };
         /** io.github.whdt.core.hdt.model.property.PropertyValue */
         PropertyValue: components["schemas"]["boolean-value"] | components["schemas"]["double-value"] | components["schemas"]["empty-value"] | components["schemas"]["float-value"] | components["schemas"]["int-value"] | components["schemas"]["long-value"] | components["schemas"]["string-value"];
+        /** io.github.whdt.core.hdt.model.property.Coding */
+        Coding: {
+            system: string;
+            code: string;
+        };
         /** io.github.whdt.db.property.PropertyObservationDocument */
         PropertyObservationDocument: {
             metaField: components["schemas"]["PropertyEventMetadata"];
@@ -559,8 +733,12 @@ export interface components {
             description: string;
             /** @enum {string} */
             declaredType: "INT" | "LONG" | "FLOAT" | "DOUBLE" | "STRING" | "BOOLEAN";
-            initialValue?: components["schemas"]["PropertyValue"] | null;
+            initialValue?: components["schemas"]["PropertyValue"];
             id?: string;
+            tags?: {
+                [key: string]: string;
+            };
+            coding?: components["schemas"]["Coding"];
         };
         /** io.github.whdt.db.assembler.PropertySpecEntry */
         PropertySpecEntry: {
@@ -568,16 +746,21 @@ export interface components {
             propertyName: string;
             description: string;
             declaredType: string;
-            initialValue?: components["schemas"]["PropertyValue"] | null;
-            metadata?: {
+            initialValue?: components["schemas"]["PropertyValue"];
+            tags?: {
                 [key: string]: string;
             };
+            coding?: components["schemas"]["Coding"];
         };
         /** io.github.whdt.db.assembler.ModelSpecEntry */
         ModelSpecEntry: {
             modelId: string;
             modelName: string;
             properties: components["schemas"]["PropertySpecEntry"][];
+            tags?: {
+                [key: string]: string;
+            };
+            format?: string;
         };
         /** io.github.whdt.db.assembler.HdtSpecResponse */
         HdtSpecResponse: {
@@ -586,7 +769,7 @@ export interface components {
             digitalInterfaces: components["schemas"]["DigitalInterface"][];
             storages: components["schemas"]["Storage"][];
             models: components["schemas"]["ModelSpecEntry"][];
-            metadata: {
+            tags: {
                 [key: string]: string;
             };
         };
@@ -594,7 +777,7 @@ export interface components {
         PropertySnapshotEntry: {
             propertyId: string;
             propertyName: string;
-            value?: components["schemas"]["PropertyValue"] | null;
+            value?: components["schemas"]["PropertyValue"];
             /** Format: date-time */
             timestamp?: string | null;
             /** @enum {string} */
@@ -659,6 +842,53 @@ export interface components {
             matchedProperties: string[];
             matchedEvents: components["schemas"]["EventMatch"][];
         };
+        /** io.github.whdt.core.hdt.view.View */
+        View: {
+            name: string;
+            predicate?: components["schemas"]["TagPredicate"];
+            groupByKeys?: string[];
+        };
+        /** io.github.whdt.db.view.ViewDocument */
+        ViewDocument: {
+            name: string;
+            predicate?: components["schemas"]["TagPredicate"];
+            groupByKeys?: string[];
+        };
+        /**
+         * io.github.whdt.core.hdt.view.ViewResult
+         * @description Result of executing a View. Either a flat list of matching properties or a grouped result keyed by a tag value. Observed serialized shape of ViewResult.Grouped:
+         *       {"type":"grouped","key":"<groupByKey>","buckets":[[<tagValue_or_null>,{"type":"flat","properties":[...]}],...]}
+         *     The buckets field is a list of [key, flat-result] pairs (BucketListSerializer) to support null bucket keys.
+         */
+        ViewResult: components["schemas"]["ViewResult-flat"] | components["schemas"]["ViewResult-grouped"];
+        /** ViewResult-flat */
+        "ViewResult-flat": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "flat";
+            properties?: components["schemas"]["property"][];
+        };
+        /** ViewResult-grouped */
+        "ViewResult-grouped": {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "grouped";
+            key: string;
+            /** @description List of [bucketKey, ViewResult.Flat] pairs; bucketKey may be null for properties with no value for the groupByKey tag. */
+            buckets: [
+                string | null,
+                components["schemas"]["ViewResult-flat"]
+            ][];
+        };
+        /** io.github.whdt.routing.view.ExecuteScopeRequest */
+        ExecuteScopeRequest: {
+            /** @description HDT IDs to execute against. Empty or absent means all HDTs. */
+            hdtIds?: string[];
+        };
     };
     responses: never;
     parameters: never;
@@ -666,6 +896,13 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type TagPredicate = components['schemas']['TagPredicate'];
+export type TagPredicateEq = components['schemas']['TagPredicate-eq'];
+export type TagPredicateIn = components['schemas']['TagPredicate-in'];
+export type TagPredicateHas = components['schemas']['TagPredicate-has'];
+export type TagPredicateAnd = components['schemas']['TagPredicate-and'];
+export type TagPredicateOr = components['schemas']['TagPredicate-or'];
+export type TagPredicateNot = components['schemas']['TagPredicate-not'];
 export type PropertyComparisonDto = components['schemas']['PropertyComparisonDto'];
 export type PropertiesByComparisonsRequestDto = components['schemas']['PropertiesByComparisonsRequestDto'];
 export type MqttPhysicalInterface = components['schemas']['mqtt-physical-interface'];
@@ -690,6 +927,7 @@ export type IntValue = components['schemas']['int-value'];
 export type LongValue = components['schemas']['long-value'];
 export type StringValue = components['schemas']['string-value'];
 export type PropertyValue = components['schemas']['PropertyValue'];
+export type Coding = components['schemas']['Coding'];
 export type PropertyObservationDocument = components['schemas']['PropertyObservationDocument'];
 export type PropertyObservation = components['schemas']['PropertyObservation'];
 export type Property = components['schemas']['property'];
@@ -704,6 +942,12 @@ export type PropertyComparison = components['schemas']['PropertyComparison'];
 export type PropertiesByComparisonsAggregateRequest = components['schemas']['PropertiesByComparisonsAggregateRequest'];
 export type EventMatch = components['schemas']['EventMatch'];
 export type PropertiesByComparisonsAggregateResponse = components['schemas']['PropertiesByComparisonsAggregateResponse'];
+export type View = components['schemas']['View'];
+export type ViewDocument = components['schemas']['ViewDocument'];
+export type ViewResult = components['schemas']['ViewResult'];
+export type ViewResultFlat = components['schemas']['ViewResult-flat'];
+export type ViewResultGrouped = components['schemas']['ViewResult-grouped'];
+export type ExecuteScopeRequest = components['schemas']['ExecuteScopeRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
     "hdts/get": {
@@ -722,6 +966,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HumanDigitalTwinDocument"][];
+                };
+            };
+        };
+    };
+    "hdts/put": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The Representation of a Human Digital Twin */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["human-digital-twin"];
+            };
+        };
+        responses: {
+            /** @description HumanDigitalTwin created or updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HumanDigitalTwinDocument"];
                 };
             };
         };
@@ -870,7 +1139,7 @@ export interface operations {
             };
         };
     };
-    "hdts/{id}/events": {
+    "hdts/{id}/observations": {
         parameters: {
             query?: never;
             header?: never;
@@ -1166,12 +1435,13 @@ export interface operations {
     };
     "properties/get": {
         parameters: {
-            query: {
-                hdtId: string;
+            query?: {
                 modelId?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -1185,7 +1455,7 @@ export interface operations {
                     "application/json": components["schemas"]["PropertyDocument"][];
                 };
             };
-            /** @description Missing hdtId query parameter */
+            /** @description Missing HDT id */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1196,11 +1466,11 @@ export interface operations {
     };
     "properties/batch/upsert": {
         parameters: {
-            query: {
-                hdtId: string;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
         /** @description List of Property specs */
@@ -1217,7 +1487,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Missing hdtId query parameter */
+            /** @description Missing HDT id */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -1255,6 +1525,44 @@ export interface operations {
                 content?: never;
             };
             /** @description Error creating observations */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "query/property": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagPredicate"];
+            };
+        };
+        responses: {
+            /** @description Matching Property specs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyDocument"][];
+                };
+            };
+            /** @description Malformed TagPredicate body */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Query failed */
             500: {
                 headers: {
                     [name: string]: unknown;
@@ -1377,6 +1685,170 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PropertyStatsPerHdt"][];
                 };
+            };
+        };
+    };
+    "views/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All Views */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewDocument"][];
+                };
+            };
+        };
+    };
+    "views/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The View spec to store */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["View"];
+            };
+        };
+        responses: {
+            /** @description View created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewDocument"];
+                };
+            };
+        };
+    };
+    "views/{name}/get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description View found */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewDocument"];
+                };
+            };
+            /** @description View not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "views/{name}/put": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        /** @description The updated View spec */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["View"];
+            };
+        };
+        responses: {
+            /** @description View upserted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewDocument"];
+                };
+            };
+        };
+    };
+    "views/{name}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description View deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description View not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "views/{name}/execute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        /** @description Optional scope — which HDT IDs to execute against */
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ExecuteScopeRequest"];
+            };
+        };
+        responses: {
+            /** @description ViewResult per HDT id */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: components["schemas"]["ViewResult"];
+                    };
+                };
+            };
+            /** @description View not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { distinct } from "@/util/utils";
 import { 
   AggregateOperation, 
   FilterOperator, 
   toWhdtComparisonOp 
 } from "@/app/query-builder/types/query";
-import { 
-  PropertiesByComparisonsAggregateRequest, 
-  PropertiesByComparisonsAggregateResponse, 
-  PropertiesByComparisonsRequestDto, 
-  PropertyComparison, 
-  PropertyComparisonDto, 
-  PropertyStatsRequest 
+import {
+  PropertiesByComparisonsAggregateResponse,
+  PropertiesByComparisonsRequestDto,
+  PropertyComparisonDto,
+  PropertyStatsRequest
 } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
 
@@ -36,7 +34,7 @@ export default function QueryBuilderPage() {
   const [modelNames, setModelNames] = useState<string[]>([])
   const [loadingDts, setLoadingDts] = useState(true);
   const [filters, setFilters] = useState<FilterType[]>([]);
-  const [results, setResults] = useState<Record<string, any>[]>([]);
+  const [results, setResults] = useState<Record<string, unknown>[]>([]);
 
   const addFilter = () => {
     setFilters([...filters, { propertyName: "", op: ">", value: "" }]);
@@ -463,7 +461,7 @@ export default function QueryBuilderPage() {
                                 key={i}
                                 className="px-4 py-2"
                               >
-                                {value}
+                                {value as ReactNode}
                               </td>
                             ))}
                           </tr>
