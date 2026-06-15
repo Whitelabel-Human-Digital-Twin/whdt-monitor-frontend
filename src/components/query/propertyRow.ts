@@ -1,4 +1,4 @@
-import { PropertyDocument } from "@/lib/api/schema";
+import { Property, PropertyDocument } from "@/lib/api/schema";
 
 export type PropertyRow = {
   id?: string;
@@ -19,5 +19,16 @@ export function fromPropertyDocument(d: PropertyDocument): PropertyRow {
     tags: d.tags ?? {},
     coding: d.coding,
     hdtId: d.hdtId,
+  };
+}
+
+export function fromProperty(p: Property): PropertyRow {
+  return {
+    id: p.id,
+    name: p.name,
+    modelId: p.modelId,
+    declaredType: p.declaredType,
+    tags: p.tags ?? {},
+    coding: p.coding,
   };
 }
