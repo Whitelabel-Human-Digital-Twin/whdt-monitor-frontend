@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { ObservationQueryPanel } from "./panels/ObservationQueryPanel";
 import { PropertyTagQueryPanel } from "./panels/PropertyTagQueryPanel";
+import { ViewsPanel } from "./panels/ViewsPanel";
 
-type TabKey = "observation" | "property";
+type TabKey = "observation" | "property" | "views";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "observation", label: "Observation" },
   { key: "property", label: "Property" },
+  { key: "views", label: "Views" },
 ];
 
 export default function QueryWorkbench() {
@@ -37,6 +39,7 @@ export default function QueryWorkbench() {
 
         {activeTab === "observation" && <ObservationQueryPanel />}
         {activeTab === "property" && <PropertyTagQueryPanel />}
+        {activeTab === "views" && <ViewsPanel />}
       </div>
     </div>
   );
