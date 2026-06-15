@@ -5,10 +5,16 @@ import HdtDetail from "@/components/HdtDetail";
 import { api } from "@/lib/api/client";
 import { HumanDigitalTwinDocument } from "@/lib/api/schema";
 
+type ImportMode = "excel" | "json";
+type JsonStatus = { kind: "error" | "success"; message: string } | null;
+
 export default function HdtManager() {
   const [hdtList, setHdtList] = useState<HumanDigitalTwinDocument[]>([]);
   const [highlightedDT, setHighlightedDT] = useState<HumanDigitalTwinDocument | null>(null);
   const [excelInput, setExcelInput] = useState<File | null>(null);
+  const [importMode, setImportMode] = useState<ImportMode>("excel");
+  const [jsonText, setJsonText] = useState<string>("");
+  const [jsonStatus, setJsonStatus] = useState<JsonStatus>(null);
 
   const fetchHdts = async () => {
     try {
@@ -52,27 +58,124 @@ export default function HdtManager() {
     }
   }
 
+  const loadJsonFromFile = async (file: File) => {
+    setJsonStatus(null);
+    setJsonText(await file.text());
+  };
+
+  const submitJson = async () => {
+    setJsonStatus(null);
+
+    try {
+      JSON.parse(jsonText);
+    } catch (e) {
+      setJsonStatus({ kind: "error", message: `Invalid JSON: ${(e as Error).message}` });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/creation/hdts/json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: jsonText,
+      });
+
+      if (res.ok) {
+        const raw = await res.text();
+        const id = raw.replace(/^"|"$/g, "").trim();
+        await fetchHdts();
+        setJsonText("");
+        setJsonStatus({ kind: "success", message: `HDT "${id}" created` });
+      } else {
+        const msg = await res.text();
+        setJsonStatus({ kind: "error", message: msg || res.statusText });
+      }
+    } catch {
+      setJsonStatus({ kind: "error", message: "Request failed — could not reach the creation service" });
+    }
+  };
+
   useEffect(() => {
     fetchHdts();
   }, []);
 
   return (
     <div className="p-4 space-y-4">
-      <div className="w-full">
-        <input
-          type="file"
-          accept=".xlsx, .xls"
-          onChange={(e) => setExcelInput(e.target.files?.[0] || null)}
-          className="text-sm text-white"
-        />
+      {/* Import mode toggle */}
+      <div className="flex gap-2">
         <button
-          className="ml-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          onClick={uploadExcel}
-          disabled={!excelInput}
+          className={`px-4 py-2 rounded ${importMode === "excel" ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-200 hover:bg-gray-500"}`}
+          onClick={() => setImportMode("excel")}
         >
-          Upload Excel
+          Excel (CRF)
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${importMode === "json" ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-200 hover:bg-gray-500"}`}
+          onClick={() => setImportMode("json")}
+        >
+          JSON
         </button>
       </div>
+
+      {/* Excel import block */}
+      {importMode === "excel" && (
+        <div className="w-full">
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={(e) => setExcelInput(e.target.files?.[0] || null)}
+            className="text-sm text-white"
+          />
+          <button
+            className="ml-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={uploadExcel}
+            disabled={!excelInput}
+          >
+            Upload Excel
+          </button>
+        </div>
+      )}
+
+      {/* JSON import block */}
+      {importMode === "json" && (
+        <div className="w-full space-y-2">
+          <textarea
+            className="w-full h-40 bg-gray-800 text-white p-2 rounded font-mono text-sm resize-y"
+            placeholder="Paste JSON payload here…"
+            value={jsonText}
+            onChange={(e) => setJsonText(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <label className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500 cursor-pointer">
+              Load from file…
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) loadJsonFromFile(file);
+                }}
+              />
+            </label>
+            <button
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              onClick={submitJson}
+              disabled={!jsonText.trim()}
+            >
+              Submit JSON
+            </button>
+          </div>
+          {jsonStatus && (
+            <p
+              data-testid="json-import-status"
+              className={`text-sm ${jsonStatus.kind === "success" ? "text-green-400" : "text-red-400"}`}
+            >
+              {jsonStatus.message}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Bottom Split View */}
       <div className="flex flex-row gap-4">
