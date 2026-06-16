@@ -50,7 +50,7 @@ export default function HdtManager() {
         alert("Excel uploaded successfully!");
         setExcelInput(null);
       } else {
-        alert("Failed to upload Excel: " + res.statusText);
+        alert("Failed to upload Excel: " + res.statusText + "/t" + await res.text());
       }
     } catch (err) {
       console.error("Excel upload failed", err);
