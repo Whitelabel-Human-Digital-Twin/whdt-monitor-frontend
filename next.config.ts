@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/creation/:path*',
-        destination: `${creationServiceUrl}/:path*`,
+        destination: `${creationServiceUrl}/api/:path*`,
       },
       {
         source: '/api/persistence/:path*',
