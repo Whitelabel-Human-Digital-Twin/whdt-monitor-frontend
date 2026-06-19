@@ -256,6 +256,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hdts/{id}/properties/{propertyId}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace Property tags
+         * @description Replaces the entire tag map of a single Property spec. The request body is the complete desired tag map; an empty object clears all tags.
+         */
+        put: operations["properties/{propertyId}/tags/put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/observations/batch": {
         parameters: {
             query?: never;
@@ -1495,6 +1515,58 @@ export interface operations {
                 content?: never;
             };
             /** @description Failed to upsert property specs */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "properties/{propertyId}/tags/put": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                propertyId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Tags replaced; returns the new tag map */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+            /** @description Missing path parameter */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Property not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Failed to update tags */
             500: {
                 headers: {
                     [name: string]: unknown;
