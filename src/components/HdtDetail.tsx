@@ -7,6 +7,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import { HdtSpecResponse, PropertySnapshotEntry, PropertyValue } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
+import PropertyTagEditor from "./PropertyTagEditor";
 
 interface HdtDetailProps {
   id: string;
@@ -18,6 +19,7 @@ type DisplayRow = {
   propertyName: string;
   value: PropertyValue | null | undefined;
   timestamp: string | null | undefined;
+  tags: Record<string, string>;
 };
 
 export default function HdtDetail({ id }: HdtDetailProps) {
@@ -27,6 +29,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedModelName, setSelectedModelName] = useState<string>("All");
+  const [editorTarget, setEditorTarget] = useState<DisplayRow | null>(null);
 
   const fetchSpec = async () => {
     try {
@@ -85,6 +88,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
           propertyName: prop.propertyName,
           value: obs?.value ?? prop.initialValue,
           timestamp: obs?.timestamp ?? null,
+          tags: prop.tags ?? {},
         };
       })
     );
@@ -167,6 +171,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
                   <th className="p-2 border border-gray-600">Property</th>
                   <th className="p-2 border border-gray-600">Value</th>
                   <th className="p-2 border border-gray-600">Timestamp</th>
+                  <th className="p-2 border border-gray-600">Tags</th>
                 </tr>
               </thead>
               <tbody>
@@ -186,11 +191,30 @@ export default function HdtDetail({ id }: HdtDetailProps) {
                     <td className="p-2 border border-gray-700">
                       {row.timestamp ? new Date(row.timestamp).toDateString() : "—"}
                     </td>
+                    <td className="p-2 border border-gray-700">
+                      <button
+                        className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs"
+                        onClick={(e) => { e.stopPropagation(); setEditorTarget(row); }}
+                      >
+                        🏷 {Object.keys(row.tags).length}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          {editorTarget && (
+            <PropertyTagEditor
+              open={!!editorTarget}
+              hdtId={id}
+              propertyId={editorTarget.propertyId}
+              propertyName={editorTarget.propertyName}
+              initialTags={editorTarget.tags}
+              onClose={() => setEditorTarget(null)}
+              onSaved={() => { fetchSpec(); setEditorTarget(null); }}
+            />
+          )}
         </>
       )}
     </div>
