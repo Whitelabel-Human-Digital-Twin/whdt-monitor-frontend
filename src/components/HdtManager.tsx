@@ -8,6 +8,17 @@ import { HumanDigitalTwinDocument } from "@/lib/api/schema";
 type ImportMode = "excel" | "json";
 type JsonStatus = { kind: "error" | "success"; message: string } | null;
 
+const MAX_IDS_SHOWN = 10;
+
+function formatCreatedMessage(ids: string[]): string {
+  const count = ids.length;
+  if (count === 0) return "No HDTs created";
+  const noun = count === 1 ? "HDT" : "HDTs";
+  const shown = ids.slice(0, MAX_IDS_SHOWN).join(", ");
+  const suffix = count > MAX_IDS_SHOWN ? `, …(+${count - MAX_IDS_SHOWN} more)` : "";
+  return `Created ${count} ${noun}: ${shown}${suffix}`;
+}
+
 export default function HdtManager() {
   const [hdtList, setHdtList] = useState<HumanDigitalTwinDocument[]>([]);
   const [highlightedDT, setHighlightedDT] = useState<HumanDigitalTwinDocument | null>(null);
@@ -66,26 +77,40 @@ export default function HdtManager() {
   const submitJson = async () => {
     setJsonStatus(null);
 
+    let parsed: unknown;
     try {
-      JSON.parse(jsonText);
+      parsed = JSON.parse(jsonText);
     } catch (e) {
       setJsonStatus({ kind: "error", message: `Invalid JSON: ${(e as Error).message}` });
       return;
     }
 
+    // Normalize to an array of objects. A single object is wrapped; a top-level
+    // value that is neither object nor array is rejected here. Element-level
+    // shape validation is delegated to the backend's index-aware 400s.
+    let payload: unknown[];
+    if (Array.isArray(parsed)) {
+      payload = parsed;
+    } else if (parsed !== null && typeof parsed === "object") {
+      payload = [parsed];
+    } else {
+      setJsonStatus({ kind: "error", message: "Expected a JSON object or an array of objects" });
+      return;
+    }
+
     try {
-      const res = await fetch("/api/creation/hdts/json", {
+      const res = await fetch("/api/creation/hdts/json/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: jsonText,
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        const raw = await res.text();
-        const id = raw.replace(/^"|"$/g, "").trim();
+        const data = await res.json();
+        const ids: string[] = Array.isArray(data) ? data : [];
         await fetchHdts();
         setJsonText("");
-        setJsonStatus({ kind: "success", message: `HDT "${id}" created` });
+        setJsonStatus({ kind: "success", message: formatCreatedMessage(ids) });
       } else {
         const msg = await res.text();
         setJsonStatus({ kind: "error", message: msg || res.statusText });
@@ -141,7 +166,7 @@ export default function HdtManager() {
         <div className="w-full space-y-2">
           <textarea
             className="w-full h-40 bg-gray-800 text-white p-2 rounded font-mono text-sm resize-y"
-            placeholder="Paste JSON payload here…"
+            placeholder="Paste a JSON object or an array of objects…"
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
           />
