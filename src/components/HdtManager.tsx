@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import HdtDetail from "@/components/HdtDetail";
+import HdtTaskView from "@/components/HdtTaskView";
 import { api } from "@/lib/api/client";
 import { HumanDigitalTwinDocument } from "@/lib/api/schema";
 
@@ -225,7 +225,7 @@ export default function HdtManager() {
 
         {/* HDT Details */}
         <div className="flex-1 min-w-0">
-          {highlightedDT && <HdtDetail id={highlightedDT.hdtId} />}
+          {highlightedDT && <HdtTaskView id={highlightedDT.hdtId} />}
         </div>
       </div>
     </div>
