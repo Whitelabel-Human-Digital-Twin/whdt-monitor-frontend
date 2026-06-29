@@ -9,8 +9,11 @@ import { HdtSpecResponse, PropertySnapshotEntry, PropertyValue } from "@/lib/api
 import { api } from "@/lib/api/client";
 import PropertyTagEditor from "./PropertyTagEditor";
 
+export const NO_TASK = "__no_task__";
+
 interface HdtDetailProps {
   id: string;
+  task?: string;
 }
 
 type DisplayRow = {
@@ -22,7 +25,7 @@ type DisplayRow = {
   tags: Record<string, string>;
 };
 
-export default function HdtDetail({ id }: HdtDetailProps) {
+export default function HdtDetail({ id, task }: HdtDetailProps) {
   const [spec, setSpec] = useState<HdtSpecResponse | null>(null);
   const [snapshot, setSnapshot] = useState<PropertySnapshotEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,8 +97,23 @@ export default function HdtDetail({ id }: HdtDetailProps) {
     );
   }, [spec, snapshot]);
 
+  const taskScopedRows = useMemo(() => {
+    if (task === undefined) return displayRows;
+    if (task === NO_TASK) return displayRows.filter((r) => !("task" in r.tags));
+    return displayRows.filter((r) => r.tags.task === task);
+  }, [displayRows, task]);
+
+  const modelNamesInScope = useMemo(
+    () => Array.from(new Set(taskScopedRows.map((r) => r.modelName))),
+    [taskScopedRows]
+  );
+
+  useEffect(() => {
+    setSelectedModelName("All");
+  }, [task]);
+
   const filteredRows = useMemo(() => {
-    return displayRows.filter((row) => {
+    return taskScopedRows.filter((row) => {
       const matchesModel =
         selectedModelName === "All" || row.modelName === selectedModelName;
 
@@ -111,7 +129,7 @@ export default function HdtDetail({ id }: HdtDetailProps) {
         return true;
       }
     });
-  }, [displayRows, selectedModelName, search]);
+  }, [taskScopedRows, selectedModelName, search]);
 
   return (
     <div className="bg-gray-900 text-white p-4 rounded shadow w-full">
@@ -150,8 +168,8 @@ export default function HdtDetail({ id }: HdtDetailProps) {
               }}
             >
               <Tab value="All" label="All" />
-              {spec?.models.map((m) => (
-                <Tab key={m.modelId} value={m.modelName} label={m.modelName} />
+              {modelNamesInScope.map((name) => (
+                <Tab key={name} value={name} label={name} />
               ))}
             </Tabs>
           </div>
