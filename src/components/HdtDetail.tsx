@@ -33,6 +33,8 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
   const [search, setSearch] = useState("");
   const [selectedModelName, setSelectedModelName] = useState<string>("All");
   const [editorTarget, setEditorTarget] = useState<DisplayRow | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const fetchSpec = async () => {
     try {
@@ -68,15 +70,20 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
     }
   };
 
+  const refresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchSnapshot();
+      setLastUpdated(new Date());
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
     fetchSpec();
-    fetchSnapshot();
-
-    const interval = setInterval(() => {
-      fetchSnapshot();
-    }, 5000);
-
-    return () => clearInterval(interval);
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const displayRows: DisplayRow[] = useMemo(() => {
@@ -133,7 +140,21 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
 
   return (
     <div className="bg-gray-900 text-white p-4 rounded shadow w-full">
-      <h2 className="font-bold text-lg mb-2">State of {id}</h2>
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-bold text-lg">State of {id}</h2>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <span className="text-xs text-gray-400">Updated {lastUpdated.toLocaleTimeString()}</span>
+          )}
+          <button
+            onClick={refresh}
+            disabled={refreshing}
+            className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm disabled:opacity-50"
+          >
+            {refreshing ? "Refreshing…" : "↻ Refresh"}
+          </button>
+        </div>
+      </div>
       {loading ? (
         <p>Loading...</p>
       ) : (
