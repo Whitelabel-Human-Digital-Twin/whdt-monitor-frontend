@@ -1,20 +1,17 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Filter } from "./Filter";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import { HdtSpecResponse, PropertySnapshotEntry, PropertyValue } from "@/lib/api/schema";
-import { api } from "@/lib/api/client";
+import { HdtSpecResponse, PropertySpecEntry, PropertyValue, TaskPropertySnapshotEntry } from "@/lib/api/schema";
 import PropertyTagEditor from "./PropertyTagEditor";
-
-export const NO_TASK = "__no_task__";
 
 interface HdtDetailProps {
   id: string;
+  entries: TaskPropertySnapshotEntry[];
   spec: HdtSpecResponse;
-  task?: string;
   onTagSaved?: () => void;
 }
 
@@ -22,117 +19,66 @@ type DisplayRow = {
   modelName: string;
   propertyId: string;
   propertyName: string;
-  value: PropertyValue | null | undefined;
-  timestamp: string | null | undefined;
+  value: PropertyValue;
+  timestamp: string;
   tags: Record<string, string>;
+  declaredType?: string;
 };
 
-export default function HdtDetail({ id, spec, task, onTagSaved }: HdtDetailProps) {
-  const [snapshot, setSnapshot] = useState<PropertySnapshotEntry[]>([]);
+export default function HdtDetail({ id, entries, spec, onTagSaved }: HdtDetailProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedModelName, setSelectedModelName] = useState<string>("All");
   const [editorTarget, setEditorTarget] = useState<DisplayRow | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  const fetchSnapshot = async () => {
-    try {
-      const res = await api.GET("/hdts/{id}/snapshot", {
-        params: {
-          path: { id }
-        }
-      });
-      setSnapshot(res.data ?? []);
-    } catch (err) {
-      console.error("Failed to fetch HDT snapshot:", err);
+  const specByPropertyId = useMemo(() => {
+    const m = new Map<string, PropertySpecEntry>();
+    for (const model of spec.models) {
+      for (const p of model.properties) m.set(p.propertyId, p);
     }
-  };
-
-  const refresh = async () => {
-    setRefreshing(true);
-    try {
-      await fetchSnapshot();
-      setLastUpdated(new Date());
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    return m;
+  }, [spec]);
 
   const displayRows: DisplayRow[] = useMemo(() => {
-    const snapshotMap = new Map(snapshot.map((s) => [s.propertyId, s]));
-    return spec.models.flatMap((model) =>
-      model.properties.map((prop) => {
-        const obs = snapshotMap.get(prop.propertyId);
-        return {
-          modelName: model.modelName,
-          propertyId: prop.propertyId,
-          propertyName: prop.propertyName,
-          value: obs?.value ?? prop.initialValue,
-          timestamp: obs?.timestamp ?? null,
-          tags: prop.tags ?? {},
-        };
-      })
-    );
-  }, [spec, snapshot]);
-
-  const taskScopedRows = useMemo(() => {
-    if (task === undefined) return displayRows;
-    if (task === NO_TASK) return displayRows.filter((r) => !("task" in r.tags));
-    return displayRows.filter((r) => r.tags.task === task);
-  }, [displayRows, task]);
+    return entries.map((e) => {
+      const sp = specByPropertyId.get(e.propertyId);
+      return {
+        modelName: e.modelName,
+        propertyId: e.propertyId,
+        propertyName: e.propertyName,
+        value: e.value,
+        timestamp: e.timestamp,
+        tags: sp?.tags ?? {},
+        declaredType: sp?.declaredType,
+      };
+    });
+  }, [entries, specByPropertyId]);
 
   const modelNamesInScope = useMemo(
-    () => Array.from(new Set(taskScopedRows.map((r) => r.modelName))),
-    [taskScopedRows]
+    () => Array.from(new Set(displayRows.map((r) => r.modelName))),
+    [displayRows]
   );
 
-  useEffect(() => {
-    setSelectedModelName("All");
-  }, [task]);
-
-  const effectiveModel =
-    modelNamesInScope.includes(selectedModelName) ? selectedModelName : "All";
+  const effectiveModel = modelNamesInScope.includes(selectedModelName) ? selectedModelName : "All";
 
   const filteredRows = useMemo(() => {
-    return taskScopedRows.filter((row) => {
+    return displayRows.filter((row) => {
       const matchesModel = effectiveModel === "All" || row.modelName === effectiveModel;
-
       if (!matchesModel) return false;
-
       const q = search.trim();
       if (!q) return true;
-
       try {
-        const regex = new RegExp(q, "i");
-        return regex.test(row.propertyName);
+        return new RegExp(q, "i").test(row.propertyName);
       } catch {
         return true;
       }
     });
-  }, [taskScopedRows, effectiveModel, search]);
+  }, [displayRows, effectiveModel, search]);
 
   return (
     <div className="bg-gray-900 text-white p-4 rounded shadow w-full">
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-bold text-lg">State of {id}</h2>
-        <div className="flex items-center gap-2">
-          {lastUpdated && (
-            <span className="text-xs text-gray-400">Updated {lastUpdated.toLocaleTimeString()}</span>
-          )}
-          <button
-            onClick={refresh}
-            disabled={refreshing}
-            className="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600 text-sm disabled:opacity-50"
-          >
-            {refreshing ? "Refreshing…" : "↻ Refresh"}
-          </button>
-        </div>
       </div>
 
       {modelNamesInScope.length > 1 && (
