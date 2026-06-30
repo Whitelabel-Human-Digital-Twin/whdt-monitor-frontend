@@ -15,17 +15,18 @@ export default function HdtTaskView({ id }: HdtTaskViewProps) {
   const [spec, setSpec] = useState<HdtSpecResponse | null>(null);
   const [activeTask, setActiveTask] = useState<string | undefined>(undefined);
 
+  const fetchSpec = async () => {
+    try {
+      const res = await api.GET("/hdts/{id}/spec", { params: { path: { id } } });
+      setSpec(res.data ?? null);
+    } catch (err) {
+      console.error("Failed to fetch HDT spec for task view:", err);
+    }
+  };
+
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await api.GET("/hdts/{id}/spec", { params: { path: { id } } });
-        if (!cancelled) setSpec(res.data ?? null);
-      } catch (err) {
-        console.error("Failed to fetch HDT spec for task view:", err);
-      }
-    })();
-    return () => { cancelled = true; };
+    fetchSpec();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const { tasks, hasUntagged } = useMemo(() => {
@@ -45,7 +46,10 @@ export default function HdtTaskView({ id }: HdtTaskViewProps) {
   useEffect(() => {
     if (!spec) return;
     setActiveTask((prev) => {
-      if (prev !== undefined) return prev;
+      const stillValid =
+        (prev !== undefined && prev !== NO_TASK && tasks.includes(prev)) ||
+        (prev === NO_TASK && hasUntagged);
+      if (stillValid) return prev;
       if (tasks.length > 0) return tasks[0];
       if (hasUntagged) return NO_TASK;
       return undefined;
@@ -55,7 +59,7 @@ export default function HdtTaskView({ id }: HdtTaskViewProps) {
   if (spec === null) return <p className="text-white p-4">Loading...</p>;
 
   if (tasks.length === 0 && !hasUntagged) {
-    return <HdtDetail id={id} />;
+    return <HdtDetail id={id} spec={spec} onTagSaved={fetchSpec} />;
   }
 
   return (
@@ -93,7 +97,9 @@ export default function HdtTaskView({ id }: HdtTaskViewProps) {
           {hasUntagged && <Tab value={NO_TASK} label="Untagged" />}
         </Tabs>
       </div>
-      {activeTask !== undefined && <HdtDetail id={id} task={activeTask} />}
+      {activeTask !== undefined && (
+        <HdtDetail id={id} task={activeTask} spec={spec} onTagSaved={fetchSpec} />
+      )}
     </div>
   );
 }
