@@ -13,7 +13,9 @@ export const NO_TASK = "__no_task__";
 
 interface HdtDetailProps {
   id: string;
+  spec: HdtSpecResponse;
   task?: string;
+  onTagSaved?: () => void;
 }
 
 type DisplayRow = {
@@ -25,37 +27,14 @@ type DisplayRow = {
   tags: Record<string, string>;
 };
 
-export default function HdtDetail({ id, task }: HdtDetailProps) {
-  const [spec, setSpec] = useState<HdtSpecResponse | null>(null);
+export default function HdtDetail({ id, spec, task, onTagSaved }: HdtDetailProps) {
   const [snapshot, setSnapshot] = useState<PropertySnapshotEntry[]>([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedModelName, setSelectedModelName] = useState<string>("All");
   const [editorTarget, setEditorTarget] = useState<DisplayRow | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  const fetchSpec = async () => {
-    try {
-      const res = await api.GET("/hdts/{id}/spec", {
-        params: {
-          path: { id }
-        }
-      });
-      const data = res.data;
-      if (data) {
-        setSpec(data);
-        setSelectedModelName((prev) =>
-          prev === "All" || data.models.some((m) => m.modelName === prev) ? prev : "All"
-        );
-      }
-    } catch (err) {
-      console.error("Failed to fetch HDT spec:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchSnapshot = async () => {
     try {
@@ -81,13 +60,11 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
   };
 
   useEffect(() => {
-    fetchSpec();
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const displayRows: DisplayRow[] = useMemo(() => {
-    if (!spec) return [];
     const snapshotMap = new Map(snapshot.map((s) => [s.propertyId, s]));
     return spec.models.flatMap((model) =>
       model.properties.map((prop) => {
@@ -119,10 +96,12 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
     setSelectedModelName("All");
   }, [task]);
 
+  const effectiveModel =
+    modelNamesInScope.includes(selectedModelName) ? selectedModelName : "All";
+
   const filteredRows = useMemo(() => {
     return taskScopedRows.filter((row) => {
-      const matchesModel =
-        selectedModelName === "All" || row.modelName === selectedModelName;
+      const matchesModel = effectiveModel === "All" || row.modelName === effectiveModel;
 
       if (!matchesModel) return false;
 
@@ -136,7 +115,7 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
         return true;
       }
     });
-  }, [taskScopedRows, selectedModelName, search]);
+  }, [taskScopedRows, effectiveModel, search]);
 
   return (
     <div className="bg-gray-900 text-white p-4 rounded shadow w-full">
@@ -155,106 +134,103 @@ export default function HdtDetail({ id, task }: HdtDetailProps) {
           </button>
         </div>
       </div>
-      {loading ? (
-        <p>Loading...</p>
-      ) : (
-        <>
-          <div className="w-full overflow-hidden">
-            <Tabs
-              value={selectedModelName}
-              onChange={(_, newValue) => setSelectedModelName(newValue)}
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-              sx={{
-                maxWidth: "100%",
+
+      {modelNamesInScope.length > 1 && (
+        <div className="w-full overflow-hidden">
+          <Tabs
+            value={effectiveModel}
+            onChange={(_, newValue) => setSelectedModelName(newValue)}
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
+            sx={{
+              maxWidth: "100%",
+              minHeight: 40,
+              "& .MuiTabs-scroller": {
+                overflowX: "auto !important",
+              },
+              "& .MuiTab-root": {
+                color: "#d1d5db",
+                textTransform: "none",
                 minHeight: 40,
-                "& .MuiTabs-scroller": {
-                  overflowX: "auto !important",
-                },
-                "& .MuiTab-root": {
-                  color: "#d1d5db",
-                  textTransform: "none",
-                  minHeight: 40,
-                },
-                "& .Mui-selected": {
-                  color: "#fff",
-                },
-                "& .MuiTabs-indicator": {
-                  backgroundColor: "#60a5fa",
-                },
-                "& .MuiTabs-scrollButtons": {
-                  color: "#d1d5db",
-                },
-              }}
-            >
-              <Tab value="All" label="All" />
-              {modelNamesInScope.map((name) => (
-                <Tab key={name} value={name} label={name} />
-              ))}
-            </Tabs>
-          </div>
+              },
+              "& .Mui-selected": {
+                color: "#fff",
+              },
+              "& .MuiTabs-indicator": {
+                backgroundColor: "#60a5fa",
+              },
+              "& .MuiTabs-scrollButtons": {
+                color: "#d1d5db",
+              },
+            }}
+          >
+            <Tab value="All" label="All" />
+            {modelNamesInScope.map((name) => (
+              <Tab key={name} value={name} label={name} />
+            ))}
+          </Tabs>
+        </div>
+      )}
 
-          <Filter
-            value={search}
-            onChange={setSearch}
-            placeholder="Search property..."
-            className="mb-4 p-2 border border-gray-700 rounded bg-gray-900 text-white w-full"
-          />
+      <Filter
+        value={search}
+        onChange={setSearch}
+        placeholder="Search property..."
+        className="mb-4 p-2 border border-gray-700 rounded bg-gray-900 text-white w-full"
+      />
 
-          <div className="w-full overflow-x-auto">
-            <table className="min-w-full text-sm text-left border border-gray-600 mt-2 text-white">
-              <thead className="bg-gray-800 text-gray-300">
-                <tr>
-                  <th className="p-2 border border-gray-600">Model</th>
-                  <th className="p-2 border border-gray-600">Property</th>
-                  <th className="p-2 border border-gray-600">Value</th>
-                  <th className="p-2 border border-gray-600">Timestamp</th>
-                  <th className="p-2 border border-gray-600">Tags</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row) => (
-                  <tr
-                    key={row.propertyId}
-                    className="bg-gray-900 hover:bg-gray-800"
-                    onClick={() => router.push(`/hdt/${id}/property-live`)}
+      <div className="w-full overflow-x-auto">
+        <table className="min-w-full text-sm text-left border border-gray-600 mt-2 text-white">
+          <thead className="bg-gray-800 text-gray-300">
+            <tr>
+              <th className="p-2 border border-gray-600">Model</th>
+              <th className="p-2 border border-gray-600">Property</th>
+              <th className="p-2 border border-gray-600">Value</th>
+              <th className="p-2 border border-gray-600">Timestamp</th>
+              <th className="p-2 border border-gray-600">Tags</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRows.map((row) => (
+              <tr
+                key={row.propertyId}
+                className="bg-gray-900 hover:bg-gray-800"
+                onClick={() => router.push(`/hdt/${id}/property-live`)}
+              >
+                <td className="p-2 border border-gray-700">{row.modelName}</td>
+                <td className="p-2 border border-gray-700">{row.propertyName}</td>
+                <td className="p-2 border border-gray-700">
+                  {row.value != null
+                    ? String((row.value as { value?: unknown }).value ?? "—")
+                    : "—"}
+                </td>
+                <td className="p-2 border border-gray-700">
+                  {row.timestamp ? new Date(row.timestamp).toDateString() : "—"}
+                </td>
+                <td className="p-2 border border-gray-700">
+                  <button
+                    className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs"
+                    onClick={(e) => { e.stopPropagation(); setEditorTarget(row); }}
                   >
-                    <td className="p-2 border border-gray-700">{row.modelName}</td>
-                    <td className="p-2 border border-gray-700">{row.propertyName}</td>
-                    <td className="p-2 border border-gray-700">
-                      {row.value != null
-                        ? String((row.value as { value?: unknown }).value ?? "—")
-                        : "—"}
-                    </td>
-                    <td className="p-2 border border-gray-700">
-                      {row.timestamp ? new Date(row.timestamp).toDateString() : "—"}
-                    </td>
-                    <td className="p-2 border border-gray-700">
-                      <button
-                        className="px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-xs"
-                        onClick={(e) => { e.stopPropagation(); setEditorTarget(row); }}
-                      >
-                        🏷 {Object.keys(row.tags).length}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {editorTarget && (
-            <PropertyTagEditor
-              open={!!editorTarget}
-              hdtId={id}
-              propertyId={editorTarget.propertyId}
-              propertyName={editorTarget.propertyName}
-              initialTags={editorTarget.tags}
-              onClose={() => setEditorTarget(null)}
-              onSaved={() => { fetchSpec(); setEditorTarget(null); }}
-            />
-          )}
-        </>
+                    🏷 {Object.keys(row.tags).length}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {editorTarget && (
+        <PropertyTagEditor
+          open={!!editorTarget}
+          hdtId={id}
+          propertyId={editorTarget.propertyId}
+          propertyName={editorTarget.propertyName}
+          initialTags={editorTarget.tags}
+          onClose={() => setEditorTarget(null)}
+          onSaved={() => { onTagSaved?.(); setEditorTarget(null); }}
+        />
       )}
     </div>
   );
