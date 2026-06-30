@@ -120,6 +120,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/hdts/{id}/snapshot/by-task": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * By-task property snapshot
+         * @description Latest observed value per (property, task) for the specified HDT. A property appears under each task in which it was observed. 'task' is null for observations recorded without a task.
+         */
+        get: operations["hdts/snapshot/by-task"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/hdts/{id}/snapshot": {
         parameters: {
             query?: never;
@@ -803,6 +823,16 @@ export interface components {
             /** @enum {string} */
             source: "observation" | "initial_value";
         };
+        /** io.github.whdt.db.assembler.TaskPropertySnapshotEntry */
+        TaskPropertySnapshotEntry: {
+            task?: string | null;
+            propertyId: string;
+            propertyName: string;
+            modelName: string;
+            value: components["schemas"]["PropertyValue"];
+            /** Format: date-time */
+            timestamp: string;
+        };
         /** io.github.whdt.routing.query.event.values.PropertyValuesRequest */
         PropertyValuesRequest: {
             hdtId?: string;
@@ -955,6 +985,7 @@ export type PropertySpecEntry = components['schemas']['PropertySpecEntry'];
 export type ModelSpecEntry = components['schemas']['ModelSpecEntry'];
 export type HdtSpecResponse = components['schemas']['HdtSpecResponse'];
 export type PropertySnapshotEntry = components['schemas']['PropertySnapshotEntry'];
+export type TaskPropertySnapshotEntry = components['schemas']['TaskPropertySnapshotEntry'];
 export type PropertyValuesRequest = components['schemas']['PropertyValuesRequest'];
 export type PropertyStatsRequest = components['schemas']['PropertyStatsRequest'];
 export type PropertyStatsPerHdt = components['schemas']['PropertyStatsPerHdt'];
@@ -1217,6 +1248,35 @@ export interface operations {
             };
             /** @description HDT or associated data not found */
             500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "hdts/snapshot/by-task": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description By-task snapshot entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPropertySnapshotEntry"][];
+                };
+            };
+            /** @description Missing HDT id */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
