@@ -15,6 +15,7 @@ import {
   toWhdtComparisonOp,
 } from "@/app/query-builder/types/query";
 import { HdtScopeSelector } from "@/components/query/HdtScopeSelector";
+import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 
 type ObservationMode = "aggregate" | "search";
 type ValueType = "number" | "string" | "boolean";
@@ -360,7 +361,9 @@ export function ObservationQueryPanel() {
       </div>
 
       {/* Results pane */}
-      <div className="w-1/2">
+      <div className="w-1/2 relative">
+        <LoadingOverlay open={loading} message="Running query…" mode="inline" />
+
         {error && (
           <div className="p-4 bg-red-900 border border-red-600 rounded-lg mb-4 text-red-200">
             {error}

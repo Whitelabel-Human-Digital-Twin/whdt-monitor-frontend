@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import HdtTaskView from "@/components/HdtTaskView";
 import { api } from "@/lib/api/client";
 import { HumanDigitalTwinDocument } from "@/lib/api/schema";
+import { SearchableHdtSelect } from "@/components/common/SearchableHdtSelect";
+import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 
 type ImportMode = "excel" | "json";
 type JsonStatus = { kind: "error" | "success"; message: string } | null;
@@ -26,6 +28,7 @@ export default function HdtManager() {
   const [importMode, setImportMode] = useState<ImportMode>("excel");
   const [jsonText, setJsonText] = useState<string>("");
   const [jsonStatus, setJsonStatus] = useState<JsonStatus>(null);
+  const [creating, setCreating] = useState(false);
 
   const fetchHdts = async () => {
     try {
@@ -47,6 +50,7 @@ export default function HdtManager() {
   const uploadExcel = async () => {
     if (!excelInput) return;
 
+    setCreating(true);
     try {
       const form = new FormData();
       form.append("file", excelInput, excelInput.name); // "file" must match the server fieldName
@@ -66,6 +70,8 @@ export default function HdtManager() {
     } catch (err) {
       console.error("Excel upload failed", err);
       alert("Error reading or uploading Excel file");
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -98,6 +104,7 @@ export default function HdtManager() {
       return;
     }
 
+    setCreating(true);
     try {
       const res = await fetch("/api/creation/hdts/json/batch", {
         method: "POST",
@@ -117,6 +124,8 @@ export default function HdtManager() {
       }
     } catch {
       setJsonStatus({ kind: "error", message: "Request failed — could not reach the creation service" });
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -126,6 +135,8 @@ export default function HdtManager() {
 
   return (
     <div className="p-4 space-y-4">
+      <LoadingOverlay open={creating} message="Creating HDTs…" mode="blocking" />
+
       {/* Import mode toggle */}
       <div className="flex gap-2">
         <button
@@ -207,20 +218,14 @@ export default function HdtManager() {
         {/* HDT List */}
         <div className="w-1/3 bg-gray-800 text-white p-4 rounded shadow">
           <h2 className="text-lg font-semibold mb-2">Available HumanDigitalTwins</h2>
-          <ul className="space-y-1">
-            {hdtList.map((hdt) => {
-              const id = hdt.hdtId
-              return (
-                <li
-                  key={id}
-                  onClick={() => setHighlightedDT(hdt)}
-                  className={`cursor-pointer hover:underline ${highlightedDT?.hdtId === id ? "text-blue-400 font-bold" : "text-white"}`}
-                >
-                  {id}
-                </li>
-              )
-            })}
-          </ul>
+          <SearchableHdtSelect
+            hdtIds={hdtList.map((hdt) => hdt.hdtId)}
+            value={highlightedDT?.hdtId ?? null}
+            onChange={(id) =>
+              setHighlightedDT(hdtList.find((hdt) => hdt.hdtId === id) ?? null)
+            }
+            label="Digital Twin"
+          />
         </div>
 
         {/* HDT Details */}
