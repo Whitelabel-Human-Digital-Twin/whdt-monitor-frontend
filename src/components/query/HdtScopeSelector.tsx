@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api/client";
+import { SearchableHdtSelect } from "@/components/common/SearchableHdtSelect";
 
 interface HdtScopeSelectorProps {
   selected: string[];
@@ -28,21 +29,12 @@ export function HdtScopeSelector({ selected, onChange }: HdtScopeSelectorProps) 
   if (hdtIds.length === 0) return <p className="text-gray-400">No digital twins found.</p>;
 
   return (
-    <div className="space-y-1">
-      {hdtIds.map((id) => (
-        <label key={id} className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={selected.includes(id)}
-            onChange={(e) =>
-              onChange(
-                e.target.checked ? [...selected, id] : selected.filter((x) => x !== id)
-              )
-            }
-          />
-          <span>{id}</span>
-        </label>
-      ))}
-    </div>
+    <SearchableHdtSelect
+      multiple
+      hdtIds={hdtIds}
+      value={selected}
+      onChange={onChange}
+      label="Digital Twins"
+    />
   );
 }

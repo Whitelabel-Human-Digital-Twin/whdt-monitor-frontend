@@ -6,6 +6,7 @@ import { api } from "@/lib/api/client";
 import { TagPredicateBuilder } from "@/components/query/TagPredicateBuilder";
 import { HdtScopeSelector } from "@/components/query/HdtScopeSelector";
 import { ViewResultTree, ViewNode } from "@/components/query/ViewResultTree";
+import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 
 type ViewDraft = {
   name: string;
@@ -197,17 +198,21 @@ function ExecuteSection({ viewName }: { viewName: string }) {
       >
         {running ? "Running…" : `Execute "${viewName}"`}
       </button>
-      {error && (
-        <div className="p-3 bg-red-900 border border-red-600 rounded text-red-200 text-sm">{error}</div>
-      )}
-      {results !== null && Object.keys(results).length === 0 && !error && (
-        <div className="p-4 bg-gray-700 rounded-lg text-gray-400 text-center text-sm">
-          No results returned.
-        </div>
-      )}
-      {results !== null && Object.keys(results).length > 0 && (
-        <ViewResultTree resultsByHdt={results} />
-      )}
+      <div className="relative">
+        <LoadingOverlay open={running} message="Executing view…" mode="inline" />
+
+        {error && (
+          <div className="p-3 bg-red-900 border border-red-600 rounded text-red-200 text-sm">{error}</div>
+        )}
+        {results !== null && Object.keys(results).length === 0 && !error && (
+          <div className="p-4 bg-gray-700 rounded-lg text-gray-400 text-center text-sm">
+            No results returned.
+          </div>
+        )}
+        {results !== null && Object.keys(results).length > 0 && (
+          <ViewResultTree resultsByHdt={results} />
+        )}
+      </div>
     </div>
   );
 }

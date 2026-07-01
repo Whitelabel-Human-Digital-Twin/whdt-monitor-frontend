@@ -6,6 +6,7 @@ import { api } from "@/lib/api/client";
 import { TagPredicateBuilder } from "@/components/query/TagPredicateBuilder";
 import { PropertyTable } from "@/components/query/PropertyTable";
 import { fromPropertyDocument, PropertyRow } from "@/components/query/propertyRow";
+import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 
 export function PropertyTagQueryPanel() {
   const [predicate, setPredicate] = useState<TagPredicate | null>(null);
@@ -65,7 +66,9 @@ export function PropertyTagQueryPanel() {
         </button>
       </div>
 
-      <div className="w-1/2">
+      <div className="w-1/2 relative">
+        <LoadingOverlay open={loading} message="Running query…" mode="inline" />
+
         {error && (
           <div className="p-4 bg-red-900 border border-red-600 rounded-lg mb-4 text-red-200">
             {error}
