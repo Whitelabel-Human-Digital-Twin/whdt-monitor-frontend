@@ -892,6 +892,22 @@ export interface components {
             matchedProperties: string[];
             matchedEvents: components["schemas"]["EventMatch"][];
         };
+        /** io.github.whdt.routing.query.event.comparison.PropertyPopulationStats */
+        PropertyPopulationStats: {
+            propertyName: string;
+            count: number;
+            avg?: number | null;
+            min?: number | null;
+            max?: number | null;
+            median?: number | null;
+            p25?: number | null;
+            p75?: number | null;
+        };
+        /** io.github.whdt.routing.query.event.comparison.ComparisonSearchResult */
+        ComparisonSearchResult: {
+            matches: components["schemas"]["PropertiesByComparisonsAggregateResponse"][];
+            populationStats: components["schemas"]["PropertyPopulationStats"][];
+        };
         /** io.github.whdt.core.hdt.view.View */
         View: {
             name: string;
@@ -993,6 +1009,8 @@ export type PropertyComparison = components['schemas']['PropertyComparison'];
 export type PropertiesByComparisonsAggregateRequest = components['schemas']['PropertiesByComparisonsAggregateRequest'];
 export type EventMatch = components['schemas']['EventMatch'];
 export type PropertiesByComparisonsAggregateResponse = components['schemas']['PropertiesByComparisonsAggregateResponse'];
+export type PropertyPopulationStats = components['schemas']['PropertyPopulationStats'];
+export type ComparisonSearchResult = components['schemas']['ComparisonSearchResult'];
 export type View = components['schemas']['View'];
 export type ViewDocument = components['schemas']['ViewDocument'];
 export type ViewResult = components['schemas']['ViewResult'];
@@ -2003,7 +2021,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PropertiesByComparisonsAggregateResponse"][];
+                    "application/json": components["schemas"]["ComparisonSearchResult"];
                 };
             };
         };

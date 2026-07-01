@@ -1,7 +1,5 @@
 import { PropertyComparisonDto } from "@/lib/api/schema";
 
-export type AggregateOperation = "avg" | "min" | "max";
-
 export type FilterOperator = "<" | ">" | "=" | "<=" | ">=";
 
 type ComparisonOp = PropertyComparisonDto["comparison"];
