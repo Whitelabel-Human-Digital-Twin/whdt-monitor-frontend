@@ -2,9 +2,9 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import {
+  CohortResult,
   PropertiesByComparisonsRequestDto,
   PropertyComparisonDto,
-  PropertyPopulationStats,
   PropertyStatsRequest,
 } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
@@ -12,46 +12,9 @@ import { distinct } from "@/util/utils";
 import { FilterOperator, toWhdtComparisonOp } from "@/app/query-builder/types/query";
 import { HdtScopeSelector } from "@/components/query/HdtScopeSelector";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
-
-const fmt = (n?: number | null) => (n == null ? "—" : n.toFixed(2));
-
-function PopulationStatsTable({ stats }: { stats: PropertyPopulationStats[] }) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm rounded-lg overflow-hidden shadow-md">
-        <thead className="bg-gray-700">
-          <tr>
-            {["Property", "Count", "Avg", "Min", "Max", "Median", "P25", "P75"].map(
-              (col) => (
-                <th key={col} className="px-4 py-2 text-left">
-                  {col}
-                </th>
-              )
-            )}
-          </tr>
-        </thead>
-
-        <tbody>
-          {stats.map((s) => (
-            <tr
-              key={s.propertyName}
-              className="border-t border-gray-700 hover:bg-gray-700"
-            >
-              <td className="px-4 py-2">{s.propertyName}</td>
-              <td className="px-4 py-2">{s.count}</td>
-              <td className="px-4 py-2">{fmt(s.avg)}</td>
-              <td className="px-4 py-2">{fmt(s.min)}</td>
-              <td className="px-4 py-2">{fmt(s.max)}</td>
-              <td className="px-4 py-2">{fmt(s.median)}</td>
-              <td className="px-4 py-2">{fmt(s.p25)}</td>
-              <td className="px-4 py-2">{fmt(s.p75)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
+import { CohortTable } from "@/components/query/cohort/CohortTable";
+import { deriveCohortColumns } from "@/components/query/cohort/shared";
+import { exportCohortToExcel } from "@/components/query/cohort/exportToExcel";
 
 type ObservationMode = "aggregate" | "search";
 type ValueType = "number" | "string" | "boolean";
@@ -83,7 +46,7 @@ export function ObservationQueryPanel() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [results, setResults] = useState<Record<string, unknown>[]>([]);
-  const [populationStats, setPopulationStats] = useState<PropertyPopulationStats[]>([]);
+  const [cohortResult, setCohortResult] = useState<CohortResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -119,7 +82,7 @@ export function ObservationQueryPanel() {
     setError(null);
     setEmpty(false);
     setResults([]);
-    setPopulationStats([]);
+    setCohortResult(null);
     setLoading(true);
 
     try {
@@ -162,35 +125,19 @@ export function ObservationQueryPanel() {
           ...(to ? { to: toIso(to) } : {}),
         };
 
-        const { data, error: err } = await api.POST("/query/event/comparison", { body });
+        const { data, error: err } = await api.POST("/query/cohort", { body });
 
         if (err) {
           setError("Request failed");
           return;
         }
 
-        if (!data || data.matches.length === 0) {
+        if (!data || data.rows.length === 0) {
           setEmpty(true);
           return;
         }
 
-        const rows = data.matches.map((match) => {
-          const row: Record<string, unknown> = { hdtId: match.hdtId };
-          const latestByProperty = new Map<string, (typeof match.matchedEvents)[number]>();
-          match.matchedEvents?.forEach((e) => {
-            const current = latestByProperty.get(e.propertyName);
-            if (!current || e.timeField > current.timeField) {
-              latestByProperty.set(e.propertyName, e);
-            }
-          });
-          latestByProperty.forEach((e, propertyName) => {
-            row[propertyName] = (e.value as { value: unknown }).value;
-          });
-          return row;
-        });
-
-        setResults(rows);
-        setPopulationStats(data.populationStats ?? []);
+        setCohortResult(data);
       }
     } catch {
       setError("Unexpected error occurred.");
@@ -216,17 +163,14 @@ export function ObservationQueryPanel() {
     downloadCSV(headers + "\n" + rows, "query-results.csv");
   };
 
-  const exportPopulationStatsToCSV = () => {
-    if (populationStats.length === 0) return;
-    const headers = "propertyName,count,avg,min,max,median,p25,p75";
-    const rows = populationStats
-      .map((s) =>
-        [s.propertyName, s.count, s.avg, s.min, s.max, s.median, s.p25, s.p75]
-          .map((v) => (v == null ? "" : v))
-          .join(",")
-      )
-      .join("\n");
-    downloadCSV(headers + "\n" + rows, "population-stats.csv");
+  const filteredPropertyNames = filters
+    .filter((f) => f.propertyName.trim() !== "")
+    .map((f) => f.propertyName);
+
+  const exportCohortToExcelFile = () => {
+    if (!cohortResult) return;
+    const columns = deriveCohortColumns(cohortResult.populationStats, filteredPropertyNames);
+    exportCohortToExcel(cohortResult, columns, "cohort.xlsx");
   };
 
   return (
@@ -421,7 +365,7 @@ export function ObservationQueryPanel() {
           </div>
         )}
 
-        {results.length > 0 && (
+        {mode === "aggregate" && results.length > 0 && (
           <div>
             <h2 className="text-lg font-bold mb-4">Query Results</h2>
 
@@ -463,17 +407,17 @@ export function ObservationQueryPanel() {
           </div>
         )}
 
-        {mode === "search" && populationStats.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-lg font-bold mb-4">Population Stats</h2>
+        {mode === "search" && cohortResult && (
+          <div>
+            <h2 className="text-lg font-bold mb-4">Cohort Results</h2>
 
-            <PopulationStatsTable stats={populationStats} />
+            <CohortTable data={cohortResult} filteredPropertyNames={filteredPropertyNames} />
 
             <button
-              onClick={exportPopulationStatsToCSV}
+              onClick={exportCohortToExcelFile}
               className="mt-4 bg-green-600 hover:bg-green-500 transition px-6 py-2 rounded-lg font-semibold"
             >
-              Export Population Stats CSV
+              Export Excel
             </button>
           </div>
         )}

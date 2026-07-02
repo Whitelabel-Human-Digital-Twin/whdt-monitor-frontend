@@ -493,6 +493,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/query/cohort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Query cohort frame (per-DT values + stats + population summary) by comparisons */
+        post: operations["query/cohort"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -908,6 +925,28 @@ export interface components {
             matches: components["schemas"]["PropertiesByComparisonsAggregateResponse"][];
             populationStats: components["schemas"]["PropertyPopulationStats"][];
         };
+        /** io.github.whdt.routing.query.event.cohort.CohortPropertyCell */
+        CohortPropertyCell: {
+            propertyName: string;
+            value?: components["schemas"]["PropertyValue"];
+            count: number;
+            avg?: number | null;
+            min?: number | null;
+            max?: number | null;
+            median?: number | null;
+            p25?: number | null;
+            p75?: number | null;
+        };
+        /** io.github.whdt.routing.query.event.cohort.CohortRow */
+        CohortRow: {
+            hdtId: string;
+            properties: components["schemas"]["CohortPropertyCell"][];
+        };
+        /** io.github.whdt.routing.query.event.cohort.CohortResult */
+        CohortResult: {
+            rows: components["schemas"]["CohortRow"][];
+            populationStats: components["schemas"]["PropertyPopulationStats"][];
+        };
         /** io.github.whdt.core.hdt.view.View */
         View: {
             name: string;
@@ -1011,6 +1050,9 @@ export type EventMatch = components['schemas']['EventMatch'];
 export type PropertiesByComparisonsAggregateResponse = components['schemas']['PropertiesByComparisonsAggregateResponse'];
 export type PropertyPopulationStats = components['schemas']['PropertyPopulationStats'];
 export type ComparisonSearchResult = components['schemas']['ComparisonSearchResult'];
+export type CohortPropertyCell = components['schemas']['CohortPropertyCell'];
+export type CohortRow = components['schemas']['CohortRow'];
+export type CohortResult = components['schemas']['CohortResult'];
 export type View = components['schemas']['View'];
 export type ViewDocument = components['schemas']['ViewDocument'];
 export type ViewResult = components['schemas']['ViewResult'];
@@ -2022,6 +2064,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ComparisonSearchResult"];
+                };
+            };
+        };
+    };
+    "query/cohort": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PropertiesByComparisonsRequestDto"];
+            };
+        };
+        responses: {
+            /** @description POST /query/cohort response 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CohortResult"];
                 };
             };
         };
