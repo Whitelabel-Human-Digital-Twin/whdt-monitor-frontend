@@ -25,6 +25,19 @@ type DisplayRow = {
   declaredType?: string;
 };
 
+function formatPropertyValue(row: DisplayRow): string {
+  const raw = row.value != null ? (row.value as { value?: unknown }).value : undefined;
+  if (raw == null) return "—";
+  if (
+    (row.declaredType === "FLOAT" || row.declaredType === "DOUBLE") &&
+    typeof raw === "number"
+  ) {
+    const decimals = row.modelName.toLowerCase() === "info" ? 1 : 2;
+    return raw.toFixed(decimals);
+  }
+  return String(raw);
+}
+
 export default function HdtDetail({ id, entries, spec, onTagSaved }: HdtDetailProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -147,9 +160,7 @@ export default function HdtDetail({ id, entries, spec, onTagSaved }: HdtDetailPr
                 <td className="p-2 border border-gray-700">{row.modelName}</td>
                 <td className="p-2 border border-gray-700">{row.propertyName}</td>
                 <td className="p-2 border border-gray-700">
-                  {row.value != null
-                    ? String((row.value as { value?: unknown }).value ?? "—")
-                    : "—"}
+                  {formatPropertyValue(row)}
                 </td>
                 <td className="p-2 border border-gray-700">
                   {row.timestamp ? new Date(row.timestamp).toDateString() : "—"}
