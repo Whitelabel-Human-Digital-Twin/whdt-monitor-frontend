@@ -28,6 +28,7 @@ export default function HdtManager() {
   const [importMode, setImportMode] = useState<ImportMode>("excel");
   const [jsonText, setJsonText] = useState<string>("");
   const [jsonStatus, setJsonStatus] = useState<JsonStatus>(null);
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
 
   const fetchHdts = async () => {
@@ -75,9 +76,34 @@ export default function HdtManager() {
     }
   }
 
-  const loadJsonFromFile = async (file: File) => {
+  const loadJsonFromFiles = async (files: FileList) => {
     setJsonStatus(null);
-    setJsonText(await file.text());
+
+    const errors: string[] = [];
+    const combined: unknown[] = [];
+
+    for (const file of Array.from(files)) {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(await file.text());
+      } catch (e) {
+        errors.push(`${file.name}: Invalid JSON — ${(e as Error).message}`);
+        continue;
+      }
+
+      if (Array.isArray(parsed)) {
+        combined.push(...parsed);
+      } else if (parsed !== null && typeof parsed === "object") {
+        combined.push(parsed);
+      } else {
+        errors.push(`${file.name}: Expected a JSON object or an array of objects`);
+      }
+    }
+
+    setFileErrors(errors);
+    if (combined.length > 0) {
+      setJsonText(JSON.stringify(combined, null, 2));
+    }
   };
 
   const submitJson = async () => {
@@ -117,6 +143,7 @@ export default function HdtManager() {
         const ids: string[] = Array.isArray(data) ? data : [];
         await fetchHdts();
         setJsonText("");
+        setFileErrors([]);
         setJsonStatus({ kind: "success", message: formatCreatedMessage(ids) });
       } else {
         const msg = await res.text();
@@ -187,10 +214,12 @@ export default function HdtManager() {
               <input
                 type="file"
                 accept=".json"
+                multiple
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) loadJsonFromFile(file);
+                  const files = e.target.files;
+                  if (files && files.length > 0) loadJsonFromFiles(files);
+                  e.target.value = "";
                 }}
               />
             </label>
@@ -202,6 +231,13 @@ export default function HdtManager() {
               Submit JSON
             </button>
           </div>
+          {fileErrors.length > 0 && (
+            <ul data-testid="json-file-errors" className="text-sm text-red-400 list-disc pl-5">
+              {fileErrors.map((err, i) => (
+                <li key={i}>{err}</li>
+              ))}
+            </ul>
+          )}
           {jsonStatus && (
             <p
               data-testid="json-import-status"
