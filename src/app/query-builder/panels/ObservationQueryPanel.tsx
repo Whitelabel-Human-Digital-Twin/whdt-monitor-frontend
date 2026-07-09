@@ -11,6 +11,7 @@ import { api } from "@/lib/api/client";
 import { distinct } from "@/util/utils";
 import { FilterOperator, toWhdtComparisonOp } from "@/app/query-builder/types/query";
 import { HdtScopeSelector } from "@/components/query/HdtScopeSelector";
+import { SearchablePropertySelect } from "@/components/common/SearchablePropertySelect";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 import { CohortTable } from "@/components/query/cohort/CohortTable";
 import { PopulationStatsMatrix } from "@/components/query/cohort/PopulationStatsMatrix";
@@ -43,6 +44,7 @@ export function ObservationQueryPanel() {
   const [selectedHdtIds, setSelectedHdtIds] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [modelNames, setModelNames] = useState<string[]>([]);
+  const [propertyNames, setPropertyNames] = useState<string[]>([]);
   const [filters, setFilters] = useState<ComparisonFilter[]>([]);
   const [task, setTask] = useState("");
   const [sex, setSex] = useState("");
@@ -59,6 +61,11 @@ export function ObservationQueryPanel() {
     api.GET("/models").then((res) => {
       if (res.data) {
         setModelNames(distinct(res.data.map((m) => m.modelName)));
+      }
+    });
+    api.GET("/properties/names").then((res) => {
+      if (res.data) {
+        setPropertyNames(distinct(res.data));
       }
     });
   }, []);
@@ -205,11 +212,11 @@ export function ObservationQueryPanel() {
         {mode === "aggregate" && (
           <div className="mb-6 p-4 bg-gray-700 rounded-lg">
             <label className="block mb-2 font-semibold">Property</label>
-            <input
-              className="p-2 bg-gray-800 border border-gray-600 rounded w-full"
+            <SearchablePropertySelect
+              propertyNames={propertyNames}
               value={property}
-              onChange={(e) => setProperty(e.target.value)}
-              placeholder="e.g. heart-rate"
+              onChange={setProperty}
+              label="Property"
             />
           </div>
         )}
@@ -262,14 +269,11 @@ export function ObservationQueryPanel() {
 
             {filters.map((filter, index) => (
               <div key={index} className="flex gap-2 items-center mb-3 flex-wrap">
-                <input
-                  type="text"
-                  className="p-2 bg-gray-800 border border-gray-600 rounded w-28"
-                  placeholder="property"
+                <SearchablePropertySelect
+                  propertyNames={propertyNames}
                   value={filter.propertyName}
-                  onChange={(e) =>
-                    updateFilter(index, "propertyName", e.target.value)
-                  }
+                  onChange={(v) => updateFilter(index, "propertyName", v)}
+                  placeholder="property"
                 />
 
                 <select
