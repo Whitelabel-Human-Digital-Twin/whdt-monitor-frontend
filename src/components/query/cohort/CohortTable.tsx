@@ -3,10 +3,12 @@
 import { Fragment, useMemo, useState } from "react";
 import { CohortResult } from "@/lib/api/schema";
 import {
+  COUNT_LABEL,
   STAT_COLS,
   STAT_LABELS,
   cellFor,
   deriveCohortColumns,
+  fmtCount,
   fmtStat,
   rawCellValue,
 } from "./shared";
@@ -59,7 +61,7 @@ export function CohortTable({
                 return (
                   <th
                     key={col.name}
-                    colSpan={open ? 1 + STAT_COLS.length : 1}
+                    colSpan={open ? 2 + STAT_COLS.length : 1}
                     className={`px-4 py-2 text-left cursor-pointer select-none whitespace-nowrap ${
                       col.filtered ? "bg-blue-900/60" : ""
                     }`}
@@ -82,6 +84,11 @@ export function CohortTable({
                     >
                       Value
                     </th>
+                    {open && (
+                      <th className="px-4 py-2 text-left text-xs font-normal whitespace-nowrap">
+                        {COUNT_LABEL}
+                      </th>
+                    )}
                     {open &&
                       STAT_COLS.map((s) => (
                         <th
@@ -106,6 +113,7 @@ export function CohortTable({
                 return (
                   <Fragment key={col.name}>
                     <td className="px-4 py-2">—</td>
+                    {open && <td className="px-4 py-2">{fmtCount(stats)}</td>}
                     {open &&
                       STAT_COLS.map((s) => (
                         <td key={s} className="px-4 py-2">
@@ -128,6 +136,7 @@ export function CohortTable({
                     return (
                       <Fragment key={col.name}>
                         <td className="px-4 py-2">{value == null ? "—" : String(value)}</td>
+                        {open && <td className="px-4 py-2">{fmtCount(cell)}</td>}
                         {open &&
                           STAT_COLS.map((s) => (
                             <td key={s} className="px-4 py-2">

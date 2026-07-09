@@ -13,6 +13,7 @@ import { FilterOperator, toWhdtComparisonOp } from "@/app/query-builder/types/qu
 import { HdtScopeSelector } from "@/components/query/HdtScopeSelector";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 import { CohortTable } from "@/components/query/cohort/CohortTable";
+import { PopulationStatsMatrix } from "@/components/query/cohort/PopulationStatsMatrix";
 import { deriveCohortColumns } from "@/components/query/cohort/shared";
 import { exportCohortToExcel } from "@/components/query/cohort/exportToExcel";
 
@@ -43,6 +44,8 @@ export function ObservationQueryPanel() {
   const [models, setModels] = useState<string[]>([]);
   const [modelNames, setModelNames] = useState<string[]>([]);
   const [filters, setFilters] = useState<ComparisonFilter[]>([]);
+  const [task, setTask] = useState("");
+  const [sex, setSex] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [results, setResults] = useState<Record<string, unknown>[]>([]);
@@ -50,6 +53,7 @@ export function ObservationQueryPanel() {
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPerDtBreakdown, setShowPerDtBreakdown] = useState(false);
 
   useEffect(() => {
     api.GET("/models").then((res) => {
@@ -83,6 +87,7 @@ export function ObservationQueryPanel() {
     setEmpty(false);
     setResults([]);
     setCohortResult(null);
+    setShowPerDtBreakdown(false);
     setLoading(true);
 
     try {
@@ -118,11 +123,16 @@ export function ObservationQueryPanel() {
             value: parseValue(f.value, f.valueType),
           }));
 
+        const metadataFilters: Record<string, string[]> = {};
+        if (task.trim() !== "") metadataFilters.task = [task.trim()];
+        if (sex.trim() !== "") metadataFilters.sex = [sex.trim()];
+
         const body: PropertiesByComparisonsRequestDto = {
           comparisons,
           modelNames: models,
           ...(from ? { from: toIso(from) } : {}),
           ...(to ? { to: toIso(to) } : {}),
+          ...(Object.keys(metadataFilters).length > 0 ? { metadataFilters } : {}),
         };
 
         const { data, error: err } = await api.POST("/query/cohort", { body });
@@ -315,6 +325,35 @@ export function ObservationQueryPanel() {
           </div>
         )}
 
+        {/* Cohort metadata filters (search mode) */}
+        {mode === "search" && (
+          <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+            <label className="block mb-2 font-semibold">Cohort Filters</label>
+            <div className="flex gap-4 flex-wrap">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-gray-400">Task</span>
+                <input
+                  type="text"
+                  className="p-2 bg-gray-800 border border-gray-600 rounded"
+                  placeholder="e.g. walking"
+                  value={task}
+                  onChange={(e) => setTask(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-gray-400">Sex</span>
+                <input
+                  type="text"
+                  className="p-2 bg-gray-800 border border-gray-600 rounded"
+                  placeholder="e.g. female"
+                  value={sex}
+                  onChange={(e) => setSex(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Time window */}
         <div className="mb-6 p-4 bg-gray-700 rounded-lg">
           <label className="block mb-2 font-semibold">Time Window (optional)</label>
@@ -409,9 +448,12 @@ export function ObservationQueryPanel() {
 
         {mode === "search" && cohortResult && (
           <div>
-            <h2 className="text-lg font-bold mb-4">Cohort Results</h2>
+            <h2 className="text-lg font-bold mb-4">Population Stats</h2>
 
-            <CohortTable data={cohortResult} filteredPropertyNames={filteredPropertyNames} />
+            <PopulationStatsMatrix
+              populationStats={cohortResult.populationStats}
+              filteredPropertyNames={filteredPropertyNames}
+            />
 
             <button
               onClick={exportCohortToExcelFile}
@@ -419,6 +461,21 @@ export function ObservationQueryPanel() {
             >
               Export Excel
             </button>
+
+            <div className="mt-8">
+              <button
+                onClick={() => setShowPerDtBreakdown((v) => !v)}
+                className="bg-gray-600 hover:bg-gray-500 transition px-4 py-2 rounded text-sm font-semibold"
+              >
+                {showPerDtBreakdown ? "▾" : "▸"} Per-DT breakdown
+              </button>
+
+              {showPerDtBreakdown && (
+                <div className="mt-4">
+                  <CohortTable data={cohortResult} filteredPropertyNames={filteredPropertyNames} />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

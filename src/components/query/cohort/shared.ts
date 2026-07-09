@@ -1,18 +1,19 @@
 import { CohortPropertyCell, CohortRow } from "@/lib/api/schema";
 import { distinct } from "@/util/utils";
 
-export const STAT_COLS = ["count", "avg", "min", "max", "median", "p25", "p75"] as const;
+export const STAT_COLS = ["min", "p25", "median", "avg", "p75", "max"] as const;
 export type StatCol = (typeof STAT_COLS)[number];
 
 export const STAT_LABELS: Record<StatCol, string> = {
-  count: "Count",
-  avg: "Avg",
   min: "Min",
-  max: "Max",
+  p25: "25%",
   median: "Median",
-  p25: "P25",
-  p75: "P75",
+  avg: "Mean",
+  p75: "75%",
+  max: "Max",
 };
+
+export const COUNT_LABEL = "Count";
 
 export type StatBearing = {
   count: number;
@@ -28,7 +29,11 @@ export const fmt = (n?: number | null) => (n == null ? "—" : n.toFixed(2));
 
 export function fmtStat(source: StatBearing | undefined, stat: StatCol): string {
   if (!source) return "—";
-  return stat === "count" ? String(source.count) : fmt(source[stat]);
+  return fmt(source[stat]);
+}
+
+export function fmtCount(source: StatBearing | undefined): string {
+  return source ? String(source.count) : "—";
 }
 
 export type CohortColumn = { name: string; filtered: boolean };

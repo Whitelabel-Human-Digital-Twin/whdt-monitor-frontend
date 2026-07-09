@@ -296,6 +296,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/properties/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List distinct Property names
+         * @description Returns the distinct set of propertyName values across all Property specs
+         */
+        get: operations["properties/names"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/observations/batch": {
         parameters: {
             query?: never;
@@ -585,6 +605,9 @@ export interface components {
             from?: string | null;
             /** Format: date-time */
             to?: string | null;
+            metadataFilters?: {
+                [key: string]: string[];
+            } | null;
         };
         /** mqtt-physical-interface */
         "mqtt-physical-interface": {
@@ -1695,6 +1718,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    "properties/names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Distinct property names */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
             };
         };
     };
