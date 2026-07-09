@@ -2,7 +2,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-import LiveLineChart from "@/components/LiveLineChart";
+import LiveLineChart, { ALL_TASKS, AgeUnit } from "@/components/LiveLineChart";
 import { Filter } from "@/components/Filter";
 import { HdtSpecResponse, PropertyObservationDocument, PropertySpecEntry } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
@@ -34,6 +34,8 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [propertyHistory, setPropertyHistory] = useState<PropertyObservationDocument[]>([]);
+  const [taskFilter, setTaskFilter] = useState<string>(ALL_TASKS);
+  const [ageUnit, setAgeUnit] = useState<AgeUnit>("months");
 
   const fetchSpec = async () => {
     try {
@@ -58,6 +60,7 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
         }]
       });
       setPropertyHistory(res.data ?? []);
+      setTaskFilter(ALL_TASKS);
     } catch (err) {
       console.error("Failed to fetch property history:", err);
     }
@@ -69,6 +72,15 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
     ) ?? [],
     [spec]
   );
+
+  const availableTasks = useMemo(() => {
+    const tasks = new Set<string>();
+    for (const obs of propertyHistory) {
+      const task = obs.metadata?.task;
+      if (task) tasks.add(task);
+    }
+    return Array.from(tasks).sort();
+  }, [propertyHistory]);
 
   const filteredProperties = useMemo(() => {
     const q = search.trim();
@@ -117,15 +129,50 @@ export default function PropertyLiveUpdatePage({ params }: { params: Promise<{ i
 
       {/* Right - Chart view */}
       <div className="flex-1 bg-gray-800 rounded p-4">
-        <h2 className="text-white text-lg font-semibold mb-4">
-          Live Chart for <span className="text-blue-300">{selectedProperty}</span>
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+          <h2 className="text-white text-lg font-semibold">
+            Live Chart for <span className="text-blue-300">{selectedProperty}</span>
+          </h2>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-300">Task</label>
+              <select
+                value={taskFilter}
+                onChange={(e) => setTaskFilter(e.target.value)}
+                className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1 text-sm"
+              >
+                <option value={ALL_TASKS}>All</option>
+                {availableTasks.map((task) => (
+                  <option key={task} value={task}>{task}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-1 text-sm">
+              <button
+                onClick={() => setAgeUnit("months")}
+                className={`px-2 py-1 rounded ${ageUnit === "months" ? "bg-blue-700 text-white" : "bg-gray-800 text-gray-300"}`}
+              >
+                Months
+              </button>
+              <button
+                onClick={() => setAgeUnit("years")}
+                className={`px-2 py-1 rounded ${ageUnit === "years" ? "bg-blue-700 text-white" : "bg-gray-800 text-gray-300"}`}
+              >
+                Years
+              </button>
+            </div>
+          </div>
+        </div>
 
         {selectedProperty ? (
           <LiveLineChart
             dtId={id}
             pName={selectedProperty}
             history={propertyHistory}
+            taskFilter={taskFilter}
+            ageUnit={ageUnit}
           />
         ) : (
           <p className="text-white">Select a property to view its live chart.</p>

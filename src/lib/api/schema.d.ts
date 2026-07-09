@@ -769,6 +769,9 @@ export interface components {
             /** Format: date-time */
             timeField: string;
             value: components["schemas"]["PropertyValue"];
+            metadata: {
+                [key: string]: string;
+            };
         };
         /** io.github.whdt.core.hdt.model.property.PropertyObservation */
         PropertyObservation: {
