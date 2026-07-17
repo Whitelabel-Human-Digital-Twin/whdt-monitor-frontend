@@ -7,10 +7,47 @@ import { HumanDigitalTwinDocument } from "@/lib/api/schema";
 import { SearchableHdtSelect } from "@/components/common/SearchableHdtSelect";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 
-type ImportMode = "excel" | "json";
+type ImportMode = "excel" | "json" | "sensorCsv";
 type JsonStatus = { kind: "error" | "success"; message: string } | null;
 
+type SensorUploadStatus =
+  | { kind: "idle" }
+  | { kind: "uploading" }
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string };
+
+type SensorCsvEntry = {
+  id: string;
+  file: File;
+  patientId: string;
+  task: string;
+  sensor: string;
+  status: SensorUploadStatus;
+};
+
 const MAX_IDS_SHOWN = 10;
+
+// Creation service, backend TODO 8: per-sensor CSV multipart upload.
+// Routed by next.config.ts: /api/creation/* → creation service /api/*.
+const SENSOR_CSV_ENDPOINT = "/api/creation/hdts/sensor/multipart";
+
+// Filename convention is <patientId>_<task>_<sensor>.csv, but it is not
+// guaranteed — the parsed values are shown as editable fields before upload.
+// The first two underscore-delimited tokens map to patientId and task; any
+// remainder is treated as the sensor (sensor names may contain underscores).
+function parseSensorFileName(name: string): {
+  patientId: string;
+  task: string;
+  sensor: string;
+} {
+  const base = name.replace(/\.csv$/i, "");
+  const parts = base.split("_");
+  return {
+    patientId: parts[0] ?? "",
+    task: parts[1] ?? "",
+    sensor: parts.slice(2).join("_"),
+  };
+}
 
 function formatCreatedMessage(ids: string[]): string {
   const count = ids.length;
@@ -29,6 +66,8 @@ export default function HdtManager() {
   const [jsonText, setJsonText] = useState<string>("");
   const [jsonStatus, setJsonStatus] = useState<JsonStatus>(null);
   const [fileErrors, setFileErrors] = useState<string[]>([]);
+  const [sensorEntries, setSensorEntries] = useState<SensorCsvEntry[]>([]);
+  const [sensorUploading, setSensorUploading] = useState(false);
   const [creating, setCreating] = useState(false);
 
   const fetchHdts = async () => {
@@ -156,6 +195,91 @@ export default function HdtManager() {
     }
   };
 
+  const addSensorFiles = (files: FileList) => {
+    const added: SensorCsvEntry[] = Array.from(files).map((file) => ({
+      id:
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${file.name}-${Date.now()}-${Math.random()}`,
+      file,
+      ...parseSensorFileName(file.name),
+      status: { kind: "idle" },
+    }));
+    setSensorEntries((prev) => [...prev, ...added]);
+  };
+
+  const updateSensorEntry = (id: string, patch: Partial<SensorCsvEntry>) => {
+    setSensorEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry))
+    );
+  };
+
+  const removeSensorEntry = (id: string) => {
+    setSensorEntries((prev) => prev.filter((entry) => entry.id !== id));
+  };
+
+  const uploadSensorCsvs = async () => {
+    if (sensorEntries.length === 0 || sensorUploading) return;
+
+    setSensorUploading(true);
+    try {
+      // Upload sequentially so each file reports its own status independently;
+      // one file failing does not abort the rest.
+      for (const entry of sensorEntries) {
+        const patientId = entry.patientId.trim();
+        const task = entry.task.trim();
+        const sensor = entry.sensor.trim();
+
+        if (!patientId || !task || !sensor) {
+          updateSensorEntry(entry.id, {
+            status: {
+              kind: "error",
+              message: "patientId, task and sensor are all required",
+            },
+          });
+          continue;
+        }
+
+        updateSensorEntry(entry.id, { status: { kind: "uploading" } });
+
+        try {
+          const form = new FormData();
+          form.append("file", entry.file, entry.file.name);
+          form.append("patientId", patientId);
+          form.append("task", task);
+          form.append("sensor", sensor);
+
+          const res = await fetch(SENSOR_CSV_ENDPOINT, {
+            method: "POST",
+            body: form, // browser sets multipart + boundary
+          });
+
+          if (res.ok) {
+            updateSensorEntry(entry.id, {
+              status: { kind: "success", message: "Uploaded" },
+            });
+          } else {
+            const msg = await res.text();
+            updateSensorEntry(entry.id, {
+              status: { kind: "error", message: msg || res.statusText },
+            });
+          }
+        } catch {
+          updateSensorEntry(entry.id, {
+            status: {
+              kind: "error",
+              message: "Request failed — could not reach the creation service",
+            },
+          });
+        }
+      }
+
+      await fetchHdts(); // Refresh list with any newly created HDTs/models
+    } finally {
+      setSensorUploading(false);
+    }
+  };
+
   useEffect(() => {
     fetchHdts();
   }, []);
@@ -177,6 +301,12 @@ export default function HdtManager() {
           onClick={() => setImportMode("json")}
         >
           JSON
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${importMode === "sensorCsv" ? "bg-blue-600 text-white" : "bg-gray-600 text-gray-200 hover:bg-gray-500"}`}
+          onClick={() => setImportMode("sensorCsv")}
+        >
+          Sensor CSV
         </button>
       </div>
 
@@ -245,6 +375,126 @@ export default function HdtManager() {
             >
               {jsonStatus.message}
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Sensor CSV import block */}
+      {importMode === "sensorCsv" && (
+        <div className="w-full space-y-3">
+          <div className="flex items-center gap-2">
+            <label className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500 cursor-pointer">
+              Add CSV files…
+              <input
+                type="file"
+                accept=".csv"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = e.target.files;
+                  if (files && files.length > 0) addSensorFiles(files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+            <button
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+              onClick={uploadSensorCsvs}
+              disabled={sensorEntries.length === 0 || sensorUploading}
+            >
+              {sensorUploading ? "Uploading…" : "Upload all"}
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-400">
+            Files are pre-parsed as{" "}
+            <code>&lt;patientId&gt;_&lt;task&gt;_&lt;sensor&gt;.csv</code>. The
+            convention isn&apos;t guaranteed — review and edit the fields below
+            before uploading. Each sensor becomes a normal model, visible in the
+            Query Workbench model filter.
+          </p>
+
+          {sensorEntries.length > 0 && (
+            <div className="overflow-x-auto">
+              <table
+                data-testid="sensor-csv-table"
+                className="w-full text-sm text-white border-collapse"
+              >
+                <thead>
+                  <tr className="text-left text-gray-300">
+                    <th className="p-2">File</th>
+                    <th className="p-2">Patient ID</th>
+                    <th className="p-2">Task</th>
+                    <th className="p-2">Sensor</th>
+                    <th className="p-2">Status</th>
+                    <th className="p-2"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sensorEntries.map((entry) => (
+                    <tr key={entry.id} className="border-t border-gray-700">
+                      <td className="p-2 max-w-[16rem] truncate" title={entry.file.name}>
+                        {entry.file.name}
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          className="w-32 bg-gray-800 text-white p-1 rounded"
+                          value={entry.patientId}
+                          onChange={(e) =>
+                            updateSensorEntry(entry.id, { patientId: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          className="w-32 bg-gray-800 text-white p-1 rounded"
+                          value={entry.task}
+                          onChange={(e) =>
+                            updateSensorEntry(entry.id, { task: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          className="w-32 bg-gray-800 text-white p-1 rounded"
+                          value={entry.sensor}
+                          onChange={(e) =>
+                            updateSensorEntry(entry.id, { sensor: e.target.value })
+                          }
+                        />
+                      </td>
+                      <td className="p-2">
+                        {entry.status.kind === "uploading" && (
+                          <span className="text-blue-400">Uploading…</span>
+                        )}
+                        {entry.status.kind === "success" && (
+                          <span className="text-green-400">{entry.status.message}</span>
+                        )}
+                        {entry.status.kind === "error" && (
+                          <span className="text-red-400">{entry.status.message}</span>
+                        )}
+                        {entry.status.kind === "idle" && (
+                          <span className="text-gray-500">Ready</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <button
+                          className="text-gray-400 hover:text-red-400 disabled:opacity-40"
+                          onClick={() => removeSensorEntry(entry.id)}
+                          disabled={sensorUploading}
+                          aria-label={`Remove ${entry.file.name}`}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
