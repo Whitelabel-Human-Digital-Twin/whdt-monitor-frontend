@@ -3,6 +3,8 @@
 import { useMemo } from "react";
 import { PropertyPopulationStats } from "@/lib/api/schema";
 import { COUNT_LABEL, STAT_COLS, STAT_LABELS, deriveCohortColumns, fmtCount, fmtStat } from "./shared";
+import { ScrollableTable } from "@/components/common/ScrollableTable";
+import { STICKY_HEADER_CELL, STICKY_HEADER_CORNER, STICKY_FIRST_COL_CELL } from "@/components/common/tableSticky";
 
 export function PopulationStatsMatrix({
   populationStats,
@@ -21,14 +23,16 @@ export function PopulationStatsMatrix({
   );
 
   return (
-    <div className="overflow-x-auto rounded-lg shadow-md">
+    <ScrollableTable>
       <table className="w-full text-sm">
         <thead className="bg-gray-700">
           <tr>
-            <th className="px-4 py-2 text-left">Property</th>
-            <th className="px-4 py-2 text-left whitespace-nowrap">{COUNT_LABEL}</th>
+            <th className={`px-4 py-2 text-left ${STICKY_HEADER_CORNER}`}>Property</th>
+            <th className={`px-4 py-2 text-left whitespace-nowrap ${STICKY_HEADER_CELL}`}>
+              {COUNT_LABEL}
+            </th>
             {STAT_COLS.map((s) => (
-              <th key={s} className="px-4 py-2 text-left whitespace-nowrap">
+              <th key={s} className={`px-4 py-2 text-left whitespace-nowrap ${STICKY_HEADER_CELL}`}>
                 {STAT_LABELS[s]}
               </th>
             ))}
@@ -41,11 +45,17 @@ export function PopulationStatsMatrix({
             return (
               <tr
                 key={col.name}
-                className={`border-t border-gray-700 hover:bg-gray-700 ${
+                className={`group border-t border-gray-700 hover:bg-gray-700 ${
                   col.filtered ? "bg-blue-900/40" : ""
                 }`}
               >
-                <td className="px-4 py-2 font-semibold whitespace-nowrap">{col.name}</td>
+                <td
+                  className={`px-4 py-2 font-semibold whitespace-nowrap group-hover:bg-gray-700 ${STICKY_FIRST_COL_CELL} ${
+                    col.filtered ? "bg-blue-950" : "bg-gray-800"
+                  }`}
+                >
+                  {col.name}
+                </td>
                 <td className="px-4 py-2">{fmtCount(stats)}</td>
                 {STAT_COLS.map((s) => (
                   <td key={s} className="px-4 py-2">
@@ -57,6 +67,6 @@ export function PopulationStatsMatrix({
           })}
         </tbody>
       </table>
-    </div>
+    </ScrollableTable>
   );
 }

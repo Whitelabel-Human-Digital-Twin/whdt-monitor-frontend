@@ -12,6 +12,13 @@ import {
   fmtStat,
   rawCellValue,
 } from "./shared";
+import { ScrollableTable } from "@/components/common/ScrollableTable";
+import {
+  STICKY_HEADER_CELL,
+  STICKY_HEADER_CORNER,
+  STICKY_FIRST_COL_CELL,
+  useMeasuredHeight,
+} from "@/components/common/tableSticky";
 
 const ROWS_PER_PAGE = 25;
 
@@ -35,6 +42,10 @@ export function CohortTable({
   const [showRows, setShowRows] = useState(false);
   const [page, setPage] = useState(0);
 
+  const [headerRow1Ref, headerRow1Height] = useMeasuredHeight<HTMLTableRowElement>();
+  const [headerRow2Ref, headerRow2Height] = useMeasuredHeight<HTMLTableRowElement>();
+  const populationRowTop = headerRow1Height + headerRow2Height;
+
   const toggleCol = (name: string) => {
     setExpandedCols((prev) => {
       const next = new Set(prev);
@@ -49,11 +60,14 @@ export function CohortTable({
 
   return (
     <div>
-      <div className="overflow-auto max-h-[70vh] rounded-lg shadow-md">
+      <ScrollableTable>
         <table className="w-full text-sm">
           <thead className="bg-gray-700">
-            <tr>
-              <th className="px-4 py-2 text-left align-bottom" rowSpan={2}>
+            <tr ref={headerRow1Ref}>
+              <th
+                className={`px-4 py-2 text-left align-bottom ${STICKY_HEADER_CORNER}`}
+                rowSpan={2}
+              >
                 DT
               </th>
               {columns.map((col) => {
@@ -62,7 +76,7 @@ export function CohortTable({
                   <th
                     key={col.name}
                     colSpan={open ? 2 + STAT_COLS.length : 1}
-                    className={`px-4 py-2 text-left cursor-pointer select-none whitespace-nowrap ${
+                    className={`px-4 py-2 text-left cursor-pointer select-none whitespace-nowrap ${STICKY_HEADER_CELL} ${
                       col.filtered ? "bg-blue-900/60" : ""
                     }`}
                     onClick={() => toggleCol(col.name)}
@@ -72,20 +86,24 @@ export function CohortTable({
                 );
               })}
             </tr>
-            <tr>
+            <tr ref={headerRow2Ref}>
               {columns.map((col) => {
                 const open = expandedCols.has(col.name);
                 return (
                   <Fragment key={col.name}>
                     <th
-                      className={`px-4 py-2 text-left text-xs font-normal whitespace-nowrap ${
+                      className={`px-4 py-2 text-left text-xs font-normal whitespace-nowrap ${STICKY_HEADER_CELL} ${
                         col.filtered ? "bg-blue-900/40" : ""
                       }`}
+                      style={{ top: headerRow1Height }}
                     >
                       Value
                     </th>
                     {open && (
-                      <th className="px-4 py-2 text-left text-xs font-normal whitespace-nowrap">
+                      <th
+                        className={`px-4 py-2 text-left text-xs font-normal whitespace-nowrap ${STICKY_HEADER_CELL}`}
+                        style={{ top: headerRow1Height }}
+                      >
                         {COUNT_LABEL}
                       </th>
                     )}
@@ -93,7 +111,8 @@ export function CohortTable({
                       STAT_COLS.map((s) => (
                         <th
                           key={s}
-                          className="px-4 py-2 text-left text-xs font-normal whitespace-nowrap"
+                          className={`px-4 py-2 text-left text-xs font-normal whitespace-nowrap ${STICKY_HEADER_CELL}`}
+                          style={{ top: headerRow1Height }}
                         >
                           {STAT_LABELS[s]}
                         </th>
@@ -105,18 +124,39 @@ export function CohortTable({
           </thead>
 
           <tbody>
-            <tr className="sticky top-0 z-10 bg-gray-800 font-bold border-t-2 border-b-2 border-gray-500">
-              <td className="px-4 py-2">Population</td>
+            <tr className="font-bold border-t-2 border-b-2 border-gray-500">
+              <td
+                className={`px-4 py-2 sticky left-0 z-[15] bg-gray-800`}
+                style={{ top: populationRowTop }}
+              >
+                Population
+              </td>
               {columns.map((col) => {
                 const open = expandedCols.has(col.name);
                 const stats = popStatsByName.get(col.name);
                 return (
                   <Fragment key={col.name}>
-                    <td className="px-4 py-2">—</td>
-                    {open && <td className="px-4 py-2">{fmtCount(stats)}</td>}
+                    <td
+                      className="px-4 py-2 sticky z-10 bg-gray-800"
+                      style={{ top: populationRowTop }}
+                    >
+                      —
+                    </td>
+                    {open && (
+                      <td
+                        className="px-4 py-2 sticky z-10 bg-gray-800"
+                        style={{ top: populationRowTop }}
+                      >
+                        {fmtCount(stats)}
+                      </td>
+                    )}
                     {open &&
                       STAT_COLS.map((s) => (
-                        <td key={s} className="px-4 py-2">
+                        <td
+                          key={s}
+                          className="px-4 py-2 sticky z-10 bg-gray-800"
+                          style={{ top: populationRowTop }}
+                        >
                           {fmtStat(stats, s)}
                         </td>
                       ))}
@@ -127,8 +167,12 @@ export function CohortTable({
 
             {showRows &&
               pageRows.map((row) => (
-                <tr key={row.hdtId} className="border-t border-gray-700 hover:bg-gray-700">
-                  <td className="px-4 py-2 font-mono text-xs">{row.hdtId}</td>
+                <tr key={row.hdtId} className="group border-t border-gray-700 hover:bg-gray-700">
+                  <td
+                    className={`px-4 py-2 font-mono text-xs bg-gray-800 group-hover:bg-gray-700 ${STICKY_FIRST_COL_CELL}`}
+                  >
+                    {row.hdtId}
+                  </td>
                   {columns.map((col) => {
                     const open = expandedCols.has(col.name);
                     const cell = cellFor(row, col.name);
@@ -150,7 +194,7 @@ export function CohortTable({
               ))}
           </tbody>
         </table>
-      </div>
+      </ScrollableTable>
 
       <div className="mt-4 flex items-center gap-4 flex-wrap">
         <button

@@ -17,6 +17,8 @@ import { CohortTable } from "@/components/query/cohort/CohortTable";
 import { PopulationStatsMatrix } from "@/components/query/cohort/PopulationStatsMatrix";
 import { deriveCohortColumns } from "@/components/query/cohort/shared";
 import { exportCohortToExcel } from "@/components/query/cohort/exportToExcel";
+import { ScrollableTable } from "@/components/common/ScrollableTable";
+import { STICKY_HEADER_CELL } from "@/components/common/tableSticky";
 
 type ObservationMode = "aggregate" | "search";
 type ValueType = "number" | "string" | "boolean";
@@ -412,12 +414,12 @@ export function ObservationQueryPanel() {
           <div>
             <h2 className="text-lg font-bold mb-4">Query Results</h2>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm rounded-lg overflow-hidden shadow-md">
+            <ScrollableTable>
+              <table className="w-full text-sm">
                 <thead className="bg-gray-700">
                   <tr>
                     {Object.keys(results[0]).map((key) => (
-                      <th key={key} className="px-4 py-2 text-left">
+                      <th key={key} className={`px-4 py-2 text-left ${STICKY_HEADER_CELL}`}>
                         {key}
                       </th>
                     ))}
@@ -439,7 +441,7 @@ export function ObservationQueryPanel() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </ScrollableTable>
 
             <button
               onClick={exportToCSV}
