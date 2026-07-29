@@ -530,6 +530,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/query/hdts/by-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List HDTs having raw observation data for the given models */
+        post: operations["query/hdts/by-model"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -973,6 +990,33 @@ export interface components {
             rows: components["schemas"]["CohortRow"][];
             populationStats: components["schemas"]["PropertyPopulationStats"][];
         };
+        /** io.github.whdt.routing.query.availability.HdtsByModelRequestDto */
+        HdtsByModelRequestDto: {
+            modelNames?: string[] | null;
+            /** @enum {string} */
+            match?: "ANY" | "ALL";
+            metadataFilters?: {
+                [key: string]: string[];
+            } | null;
+            /** Format: date-time */
+            from?: string | null;
+            /** Format: date-time */
+            to?: string | null;
+        };
+        /** io.github.whdt.routing.query.availability.ModelAvailability */
+        ModelAvailability: {
+            modelName: string;
+            observationCount: number;
+            /** Format: date-time */
+            firstTimestamp: string;
+            /** Format: date-time */
+            lastTimestamp: string;
+        };
+        /** io.github.whdt.routing.query.availability.HdtModelAvailability */
+        HdtModelAvailability: {
+            hdtId: string;
+            models: components["schemas"]["ModelAvailability"][];
+        };
         /** io.github.whdt.core.hdt.view.View */
         View: {
             name: string;
@@ -1079,6 +1123,9 @@ export type ComparisonSearchResult = components['schemas']['ComparisonSearchResu
 export type CohortPropertyCell = components['schemas']['CohortPropertyCell'];
 export type CohortRow = components['schemas']['CohortRow'];
 export type CohortResult = components['schemas']['CohortResult'];
+export type HdtsByModelRequestDto = components['schemas']['HdtsByModelRequestDto'];
+export type ModelAvailability = components['schemas']['ModelAvailability'];
+export type HdtModelAvailability = components['schemas']['HdtModelAvailability'];
 export type View = components['schemas']['View'];
 export type ViewDocument = components['schemas']['ViewDocument'];
 export type ViewResult = components['schemas']['ViewResult'];
@@ -2134,6 +2181,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CohortResult"];
+                };
+            };
+        };
+    };
+    "query/hdts/by-model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HdtsByModelRequestDto"];
+            };
+        };
+        responses: {
+            /** @description POST /query/hdts/by-model response 200 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HdtModelAvailability"][];
                 };
             };
         };
