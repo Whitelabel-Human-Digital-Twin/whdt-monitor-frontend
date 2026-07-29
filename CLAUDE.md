@@ -38,7 +38,7 @@ HDT creation and Excel upload bypass the typed client and use raw `fetch` agains
 | Route | Purpose |
 |---|---|
 | `/` | HDT list + Excel upload (`HdtManager`) |
-| `/query-builder` | Tabbed Query Workbench: **Observation** (aggregate stats, avg/min/max, comparison search), **Property** (tag-predicate property search), **Views** (CRUD + execute saved Views with `ViewResultTree`) |
+| `/query-builder` | Tabbed Query Workbench: **Observation** (aggregate stats, avg/min/max, comparison search), **Property** (tag-predicate property search), **Views** (CRUD + execute saved Views with `ViewResultTree`), **Raw Data Availability** (DT × model observation-count/acquisition-window matrix, optionally filtered by task and time window) |
 | `/hdt/[id]/property-live` | Live line chart for a selected property of a specific HDT |
 
 ### Component patterns
