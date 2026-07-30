@@ -759,6 +759,7 @@ export interface components {
                 [key: string]: string;
             };
             coding?: components["schemas"]["Coding"];
+            ordinal?: number;
             /** Format: date-time */
             lastUpdated?: string;
         };
@@ -839,6 +840,7 @@ export interface components {
                 [key: string]: string;
             };
             coding?: components["schemas"]["Coding"];
+            ordinal?: number;
         };
         /** io.github.whdt.db.assembler.PropertySpecEntry */
         PropertySpecEntry: {
@@ -851,6 +853,7 @@ export interface components {
                 [key: string]: string;
             };
             coding?: components["schemas"]["Coding"];
+            ordinal?: number;
         };
         /** io.github.whdt.db.assembler.ModelSpecEntry */
         ModelSpecEntry: {

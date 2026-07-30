@@ -38,20 +38,16 @@ export function fmtCount(source: StatBearing | undefined): string {
 
 export type CohortColumn = { name: string; filtered: boolean };
 
-/** Columns come from populationStats (the canonical set); filtered properties surface first, in filter order. */
+/** Columns preserve the backend's canonical declaration order; filtered properties are tagged, not reordered. */
 export function deriveCohortColumns(
   populationStats: { propertyName: string }[],
   filteredPropertyNames: string[]
 ): CohortColumn[] {
-  const names = distinct(populationStats.map((s) => s.propertyName));
-  const nameSet = new Set(names);
-  const filteredOrder = distinct(filteredPropertyNames.filter((n) => nameSet.has(n)));
-  const filteredSet = new Set(filteredOrder);
-  const rest = names.filter((n) => !filteredSet.has(n)).sort((a, b) => a.localeCompare(b));
-  return [
-    ...filteredOrder.map((name) => ({ name, filtered: true })),
-    ...rest.map((name) => ({ name, filtered: false })),
-  ];
+  const filteredSet = new Set(filteredPropertyNames);
+  return distinct(populationStats.map((s) => s.propertyName)).map((name) => ({
+    name,
+    filtered: filteredSet.has(name),
+  }));
 }
 
 export function cellFor(row: CohortRow, propertyName: string): CohortPropertyCell | undefined {

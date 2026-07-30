@@ -7,6 +7,7 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import { HdtSpecResponse, PropertySpecEntry, PropertyValue, TaskPropertySnapshotEntry } from "@/lib/api/schema";
 import PropertyTagEditor from "./PropertyTagEditor";
+import { byOrdinalThenName } from "@/util/utils";
 
 interface HdtDetailProps {
   id: string;
@@ -23,6 +24,7 @@ type DisplayRow = {
   timestamp: string;
   tags: Record<string, string>;
   declaredType?: string;
+  ordinal: number;
 };
 
 function formatPropertyValue(row: DisplayRow): string {
@@ -53,18 +55,21 @@ export default function HdtDetail({ id, entries, spec, onTagSaved }: HdtDetailPr
   }, [spec]);
 
   const displayRows: DisplayRow[] = useMemo(() => {
-    return entries.map((e) => {
-      const sp = specByPropertyId.get(e.propertyId);
-      return {
-        modelName: e.modelName,
-        propertyId: e.propertyId,
-        propertyName: e.propertyName,
-        value: e.value,
-        timestamp: e.timestamp,
-        tags: sp?.tags ?? {},
-        declaredType: sp?.declaredType,
-      };
-    });
+    return entries
+      .map((e) => {
+        const sp = specByPropertyId.get(e.propertyId);
+        return {
+          modelName: e.modelName,
+          propertyId: e.propertyId,
+          propertyName: e.propertyName,
+          value: e.value,
+          timestamp: e.timestamp,
+          tags: sp?.tags ?? {},
+          declaredType: sp?.declaredType,
+          ordinal: sp?.ordinal ?? -1,
+        };
+      })
+      .sort(byOrdinalThenName);
   }, [entries, specByPropertyId]);
 
   const modelNamesInScope = useMemo(
