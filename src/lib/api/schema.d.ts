@@ -625,6 +625,20 @@ export interface components {
             metadataFilters?: {
                 [key: string]: string[];
             } | null;
+            modelPresence?: components["schemas"]["ModelPresenceFilterDto"][] | null;
+        };
+        /** io.github.whdt.routing.query.availability.ModelPresenceFilterDto */
+        ModelPresenceFilterDto: {
+            modelName: string;
+            /** @enum {string} */
+            mode?: "HAS" | "HAS_NOT";
+            metadataFilters?: {
+                [key: string]: string[];
+            } | null;
+            /** Format: date-time */
+            from?: string | null;
+            /** Format: date-time */
+            to?: string | null;
         };
         /** mqtt-physical-interface */
         "mqtt-physical-interface": {
@@ -1083,6 +1097,7 @@ export type TagPredicateOr = components['schemas']['TagPredicate-or'];
 export type TagPredicateNot = components['schemas']['TagPredicate-not'];
 export type PropertyComparisonDto = components['schemas']['PropertyComparisonDto'];
 export type PropertiesByComparisonsRequestDto = components['schemas']['PropertiesByComparisonsRequestDto'];
+export type ModelPresenceFilterDto = components['schemas']['ModelPresenceFilterDto'];
 export type MqttPhysicalInterface = components['schemas']['mqtt-physical-interface'];
 export type PhysicalInterfaceImpl = components['schemas']['physical-interface-impl'];
 export type PhysicalInterface = components['schemas']['PhysicalInterface'];
