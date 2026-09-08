@@ -1,32 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { HdtsByModelRequestDto, HdtModelAvailability, ModelDocument } from "@/lib/api/schema";
+import { useMemo, useState } from "react";
+import { HdtsByModelRequestDto, HdtModelAvailability } from "@/lib/api/schema";
 import { api } from "@/lib/api/client";
 import { distinct } from "@/util/utils";
 import { LoadingOverlay } from "@/components/common/LoadingOverlay";
 import { AvailabilityMatrix } from "@/components/query/availability/AvailabilityMatrix";
+import { useModelOptions } from "@/components/query/useModelOptions";
 
-type ModelOption = { modelName: string; isSensor: boolean };
 type Match = "ANY" | "ALL";
 
 function toIso(local: string): string {
   return new Date(local).toISOString();
 }
 
-function deriveModelOptions(docs: ModelDocument[]): ModelOption[] {
-  const isSensorByName = new Map<string, boolean>();
-  for (const doc of docs) {
-    const isSensor = doc.tags?.origin === "sensorCsv";
-    isSensorByName.set(doc.modelName, isSensorByName.get(doc.modelName) || isSensor);
-  }
-  return [...isSensorByName.entries()]
-    .map(([modelName, isSensor]) => ({ modelName, isSensor }))
-    .sort((a, b) => a.modelName.localeCompare(b.modelName));
-}
-
 export function RawDataAvailabilityPanel() {
-  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
+  const { options: modelOptions } = useModelOptions();
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [match, setMatch] = useState<Match>("ANY");
   const [task, setTask] = useState("");
@@ -35,14 +24,6 @@ export function RawDataAvailabilityPanel() {
   const [results, setResults] = useState<HdtModelAvailability[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    api.GET("/models").then((res) => {
-      if (res.data) {
-        setModelOptions(deriveModelOptions(res.data));
-      }
-    });
-  }, []);
 
   const sensorModels = modelOptions.filter((m) => m.isSensor);
   const otherModels = modelOptions.filter((m) => !m.isSensor);

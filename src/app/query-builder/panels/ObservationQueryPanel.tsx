@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import {
   CohortResult,
+  ModelPresenceFilterDto,
   PropertiesByComparisonsRequestDto,
   PropertyComparisonDto,
   PropertyStatsRequest,
@@ -19,6 +20,7 @@ import { deriveCohortColumns } from "@/components/query/cohort/shared";
 import { exportCohortToExcel } from "@/components/query/cohort/exportToExcel";
 import { ScrollableTable } from "@/components/common/ScrollableTable";
 import { STICKY_HEADER_CELL } from "@/components/common/tableSticky";
+import { useModelOptions } from "@/components/query/useModelOptions";
 
 type ObservationMode = "aggregate" | "search";
 type ValueType = "number" | "string" | "boolean";
@@ -29,6 +31,21 @@ type ComparisonFilter = {
   valueType: ValueType;
   value: string;
 };
+
+type PresenceMode = "HAS" | "HAS_NOT";
+
+type PresenceRow = {
+  id: string;
+  modelName: string;
+  mode: PresenceMode;
+  task: string;
+};
+
+let presenceRowSeq = 0;
+function nextPresenceRowId(): string {
+  presenceRowSeq += 1;
+  return `presence-${presenceRowSeq}`;
+}
 
 function parseValue(raw: string, valueType: ValueType): number | string | boolean {
   if (valueType === "number") return Number(raw);
@@ -45,13 +62,13 @@ export function ObservationQueryPanel() {
   const [property, setProperty] = useState("");
   const [selectedHdtIds, setSelectedHdtIds] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
-  const [modelNames, setModelNames] = useState<string[]>([]);
   const [propertyNames, setPropertyNames] = useState<string[]>([]);
   const [filters, setFilters] = useState<ComparisonFilter[]>([]);
   const [task, setTask] = useState("");
   const [sex, setSex] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [presenceRows, setPresenceRows] = useState<PresenceRow[]>([]);
   const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [cohortResult, setCohortResult] = useState<CohortResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,18 +76,39 @@ export function ObservationQueryPanel() {
   const [loading, setLoading] = useState(false);
   const [showPerDtBreakdown, setShowPerDtBreakdown] = useState(false);
 
+  const { options: modelOptions } = useModelOptions();
+  const modelNames = distinct(modelOptions.map((m) => m.modelName));
+  const sensorModelOptions = modelOptions.filter((m) => m.isSensor);
+  const otherModelOptions = modelOptions.filter((m) => !m.isSensor);
+
   useEffect(() => {
-    api.GET("/models").then((res) => {
-      if (res.data) {
-        setModelNames(distinct(res.data.map((m) => m.modelName)));
-      }
-    });
     api.GET("/properties/names").then((res) => {
       if (res.data) {
         setPropertyNames(distinct(res.data));
       }
     });
   }, []);
+
+  const addPresenceRow = () => {
+    setPresenceRows([
+      ...presenceRows,
+      { id: nextPresenceRowId(), modelName: "", mode: "HAS", task: "" },
+    ]);
+  };
+
+  const updatePresenceRow = (
+    id: string,
+    field: keyof Omit<PresenceRow, "id">,
+    value: string
+  ) => {
+    setPresenceRows(
+      presenceRows.map((r) => (r.id === id ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const removePresenceRow = (id: string) => {
+    setPresenceRows(presenceRows.filter((r) => r.id !== id));
+  };
 
   const addFilter = () => {
     setFilters([
@@ -136,18 +174,31 @@ export function ObservationQueryPanel() {
         if (task.trim() !== "") metadataFilters.task = [task.trim()];
         if (sex.trim() !== "") metadataFilters.sex = [sex.trim()];
 
+        const modelPresence: ModelPresenceFilterDto[] = presenceRows
+          .filter((r) => r.modelName !== "")
+          .map((r) => ({
+            modelName: r.modelName,
+            mode: r.mode,
+            ...(r.task.trim() !== "" ? { metadataFilters: { task: [r.task.trim()] } } : {}),
+          }));
+
         const body: PropertiesByComparisonsRequestDto = {
           comparisons,
           modelNames: models,
           ...(from ? { from: toIso(from) } : {}),
           ...(to ? { to: toIso(to) } : {}),
           ...(Object.keys(metadataFilters).length > 0 ? { metadataFilters } : {}),
+          ...(modelPresence.length > 0 ? { modelPresence } : {}),
         };
 
-        const { data, error: err } = await api.POST("/query/cohort", { body });
+        const { data, response } = await api.POST("/query/cohort", { body });
 
-        if (err) {
-          setError("Request failed");
+        if (!response.ok) {
+          setError(
+            response.status === 400
+              ? "Add at least one comparison filter or sensor data requirement."
+              : "Request failed"
+          );
           return;
         }
 
@@ -185,6 +236,12 @@ export function ObservationQueryPanel() {
   const filteredPropertyNames = filters
     .filter((f) => f.propertyName.trim() !== "")
     .map((f) => f.propertyName);
+
+  const hasValidComparison = filters.some(
+    (f) => f.propertyName.trim() !== "" && f.value.trim() !== ""
+  );
+  const hasValidPresenceRow = presenceRows.some((r) => r.modelName !== "");
+  const searchSubmitDisabled = mode === "search" && !hasValidComparison && !hasValidPresenceRow;
 
   const exportCohortToExcelFile = () => {
     if (!cohortResult) return;
@@ -233,7 +290,12 @@ export function ObservationQueryPanel() {
 
         {/* Model filter */}
         <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-          <label className="block mb-2 font-semibold">Models</label>
+          <label className="block mb-2 font-semibold">Restrict observations to models</label>
+          <p className="text-xs text-gray-400 mb-2">
+            Narrows which observations the comparisons above are evaluated against. Selecting a
+            sensor model here will usually return nothing — use &quot;Require sensor data&quot;
+            below for that.
+          </p>
           {modelNames.length === 0 ? (
             <p className="text-gray-400 text-sm">No models found.</p>
           ) : (
@@ -331,6 +393,78 @@ export function ObservationQueryPanel() {
           </div>
         )}
 
+        {/* Require sensor data (search mode) */}
+        {mode === "search" && (
+          <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+            <div className="flex justify-between items-center mb-1">
+              <label className="font-semibold">Require sensor data</label>
+              <button
+                onClick={addPresenceRow}
+                className="bg-green-600 px-3 py-1 rounded text-sm"
+              >
+                + Add sensor requirement
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">
+              Requires the twin to own data for a model, independently of the filters above.
+            </p>
+
+            {presenceRows.map((row) => (
+              <div key={row.id} className="flex gap-2 items-center mb-3 flex-wrap">
+                <select
+                  className="p-2 bg-gray-800 border border-gray-600 rounded"
+                  value={row.modelName}
+                  onChange={(e) => updatePresenceRow(row.id, "modelName", e.target.value)}
+                >
+                  <option value="">select model</option>
+                  {sensorModelOptions.length > 0 && (
+                    <optgroup label="Sensors">
+                      {sensorModelOptions.map((m) => (
+                        <option key={m.modelName} value={m.modelName}>
+                          {m.modelName}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {otherModelOptions.length > 0 && (
+                    <optgroup label="Other models">
+                      {otherModelOptions.map((m) => (
+                        <option key={m.modelName} value={m.modelName}>
+                          {m.modelName}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+
+                <select
+                  className="p-2 bg-gray-800 border border-gray-600 rounded"
+                  value={row.mode}
+                  onChange={(e) => updatePresenceRow(row.id, "mode", e.target.value)}
+                >
+                  <option value="HAS">HAS</option>
+                  <option value="HAS_NOT">HAS NOT</option>
+                </select>
+
+                <input
+                  type="text"
+                  className="p-2 bg-gray-800 border border-gray-600 rounded w-32"
+                  placeholder="task (optional)"
+                  value={row.task}
+                  onChange={(e) => updatePresenceRow(row.id, "task", e.target.value)}
+                />
+
+                <button
+                  onClick={() => removePresenceRow(row.id)}
+                  className="bg-red-600 px-2 py-1 rounded text-sm"
+                >
+                  X
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Cohort metadata filters (search mode) */}
         {mode === "search" && (
           <div className="mb-6 p-4 bg-gray-700 rounded-lg">
@@ -387,11 +521,16 @@ export function ObservationQueryPanel() {
 
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || searchSubmitDisabled}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 transition px-6 py-3 rounded-lg font-semibold"
         >
           {loading ? "Running…" : "Run Query"}
         </button>
+        {searchSubmitDisabled && (
+          <p className="text-xs text-gray-400 mt-2 text-center">
+            Add at least one comparison filter or sensor data requirement to run a search.
+          </p>
+        )}
       </div>
 
       {/* Results pane */}
