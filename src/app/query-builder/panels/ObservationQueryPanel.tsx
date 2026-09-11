@@ -38,7 +38,6 @@ type PresenceRow = {
   id: string;
   modelName: string;
   mode: PresenceMode;
-  task: string;
 };
 
 let presenceRowSeq = 0;
@@ -92,7 +91,7 @@ export function ObservationQueryPanel() {
   const addPresenceRow = () => {
     setPresenceRows([
       ...presenceRows,
-      { id: nextPresenceRowId(), modelName: "", mode: "HAS", task: "" },
+      { id: nextPresenceRowId(), modelName: "", mode: "HAS" },
     ]);
   };
 
@@ -171,7 +170,6 @@ export function ObservationQueryPanel() {
           }));
 
         const metadataFilters: Record<string, string[]> = {};
-        if (task.trim() !== "") metadataFilters.task = [task.trim()];
         if (sex.trim() !== "") metadataFilters.sex = [sex.trim()];
 
         const modelPresence: ModelPresenceFilterDto[] = presenceRows
@@ -179,8 +177,9 @@ export function ObservationQueryPanel() {
           .map((r) => ({
             modelName: r.modelName,
             mode: r.mode,
-            ...(r.task.trim() !== "" ? { metadataFilters: { task: [r.task.trim()] } } : {}),
           }));
+
+        const taskScope = task.trim() !== "" ? [task.trim()] : undefined;
 
         const body: PropertiesByComparisonsRequestDto = {
           comparisons,
@@ -189,6 +188,7 @@ export function ObservationQueryPanel() {
           ...(to ? { to: toIso(to) } : {}),
           ...(Object.keys(metadataFilters).length > 0 ? { metadataFilters } : {}),
           ...(modelPresence.length > 0 ? { modelPresence } : {}),
+          ...(taskScope ? { taskScope } : {}),
         };
 
         const { data, response } = await api.POST("/query/cohort", { body });
@@ -318,6 +318,24 @@ export function ObservationQueryPanel() {
           )}
         </div>
 
+        {/* Task scope (search mode) */}
+        {mode === "search" && (
+          <div className="mb-6 p-4 bg-gray-700 rounded-lg">
+            <label className="block mb-2 font-semibold">Task</label>
+            <p className="text-xs text-gray-400 mb-2">
+              Scopes both which observations are aggregated by the filters below and which
+              sensor data counts as present.
+            </p>
+            <input
+              type="text"
+              className="p-2 bg-gray-800 border border-gray-600 rounded w-full"
+              placeholder="e.g. walking"
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+            />
+          </div>
+        )}
+
         {/* Comparison filters (search mode) */}
         {mode === "search" && (
           <div className="mb-6 p-4 bg-gray-700 rounded-lg">
@@ -413,6 +431,15 @@ export function ObservationQueryPanel() {
               <div key={row.id} className="flex gap-2 items-center mb-3 flex-wrap">
                 <select
                   className="p-2 bg-gray-800 border border-gray-600 rounded"
+                  value={row.mode}
+                  onChange={(e) => updatePresenceRow(row.id, "mode", e.target.value)}
+                >
+                  <option value="HAS">HAS</option>
+                  <option value="HAS_NOT">HAS NOT</option>
+                </select>
+
+                <select
+                  className="p-2 bg-gray-800 border border-gray-600 rounded"
                   value={row.modelName}
                   onChange={(e) => updatePresenceRow(row.id, "modelName", e.target.value)}
                 >
@@ -437,23 +464,6 @@ export function ObservationQueryPanel() {
                   )}
                 </select>
 
-                <select
-                  className="p-2 bg-gray-800 border border-gray-600 rounded"
-                  value={row.mode}
-                  onChange={(e) => updatePresenceRow(row.id, "mode", e.target.value)}
-                >
-                  <option value="HAS">HAS</option>
-                  <option value="HAS_NOT">HAS NOT</option>
-                </select>
-
-                <input
-                  type="text"
-                  className="p-2 bg-gray-800 border border-gray-600 rounded w-32"
-                  placeholder="task (optional)"
-                  value={row.task}
-                  onChange={(e) => updatePresenceRow(row.id, "task", e.target.value)}
-                />
-
                 <button
                   onClick={() => removePresenceRow(row.id)}
                   className="bg-red-600 px-2 py-1 rounded text-sm"
@@ -470,16 +480,6 @@ export function ObservationQueryPanel() {
           <div className="mb-6 p-4 bg-gray-700 rounded-lg">
             <label className="block mb-2 font-semibold">Cohort Filters</label>
             <div className="flex gap-4 flex-wrap">
-              <div className="flex flex-col gap-1">
-                <span className="text-sm text-gray-400">Task</span>
-                <input
-                  type="text"
-                  className="p-2 bg-gray-800 border border-gray-600 rounded"
-                  placeholder="e.g. walking"
-                  value={task}
-                  onChange={(e) => setTask(e.target.value)}
-                />
-              </div>
               <div className="flex flex-col gap-1">
                 <span className="text-sm text-gray-400">Sex</span>
                 <input
