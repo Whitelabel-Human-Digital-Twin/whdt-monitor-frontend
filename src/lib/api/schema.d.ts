@@ -626,19 +626,13 @@ export interface components {
                 [key: string]: string[];
             } | null;
             modelPresence?: components["schemas"]["ModelPresenceFilterDto"][] | null;
+            taskScope?: string[] | null;
         };
         /** io.github.whdt.routing.query.availability.ModelPresenceFilterDto */
         ModelPresenceFilterDto: {
             modelName: string;
             /** @enum {string} */
             mode?: "HAS" | "HAS_NOT";
-            metadataFilters?: {
-                [key: string]: string[];
-            } | null;
-            /** Format: date-time */
-            from?: string | null;
-            /** Format: date-time */
-            to?: string | null;
         };
         /** mqtt-physical-interface */
         "mqtt-physical-interface": {
@@ -1015,6 +1009,7 @@ export interface components {
             metadataFilters?: {
                 [key: string]: string[];
             } | null;
+            taskScope?: string[] | null;
             /** Format: date-time */
             from?: string | null;
             /** Format: date-time */

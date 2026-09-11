@@ -41,12 +41,11 @@ export function RawDataAvailabilityPanel() {
     setLoading(true);
 
     try {
-      const metadataFilters: Record<string, string[]> = {};
-      if (task.trim() !== "") metadataFilters.task = [task.trim()];
+      const taskScope = task.trim() !== "" ? [task.trim()] : undefined;
 
       const body: HdtsByModelRequestDto = {
         ...(selectedModels.length > 0 ? { modelNames: selectedModels, match } : {}),
-        ...(Object.keys(metadataFilters).length > 0 ? { metadataFilters } : {}),
+        ...(taskScope ? { taskScope } : {}),
         ...(from ? { from: toIso(from) } : {}),
         ...(to ? { to: toIso(to) } : {}),
       };
@@ -147,6 +146,7 @@ export function RawDataAvailabilityPanel() {
         {/* Task filter */}
         <div className="mb-6 p-4 bg-gray-700 rounded-lg">
           <label className="block mb-2 font-semibold">Task (optional)</label>
+          <p className="text-xs text-gray-400 mb-2">Scopes which observations count as present.</p>
           <input
             type="text"
             className="p-2 bg-gray-800 border border-gray-600 rounded w-full"
