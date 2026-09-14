@@ -18,6 +18,8 @@ import { CohortTable } from "@/components/query/cohort/CohortTable";
 import { PopulationStatsMatrix } from "@/components/query/cohort/PopulationStatsMatrix";
 import { deriveCohortColumns } from "@/components/query/cohort/shared";
 import { exportCohortToExcel } from "@/components/query/cohort/exportToExcel";
+import { buildPerDtCsvFilename, buildPerDtCsvRows } from "@/components/query/cohort/exportCsv";
+import { downloadCsv } from "@/lib/export/csv";
 import { ScrollableTable } from "@/components/common/ScrollableTable";
 import { STICKY_HEADER_CELL } from "@/components/common/tableSticky";
 import { useModelOptions } from "@/components/query/useModelOptions";
@@ -70,6 +72,7 @@ export function ObservationQueryPanel() {
   const [presenceRows, setPresenceRows] = useState<PresenceRow[]>([]);
   const [results, setResults] = useState<Record<string, unknown>[]>([]);
   const [cohortResult, setCohortResult] = useState<CohortResult | null>(null);
+  const [cohortTaskScope, setCohortTaskScope] = useState<string[] | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [empty, setEmpty] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -133,6 +136,7 @@ export function ObservationQueryPanel() {
     setEmpty(false);
     setResults([]);
     setCohortResult(null);
+    setCohortTaskScope(undefined);
     setShowPerDtBreakdown(false);
     setLoading(true);
 
@@ -208,6 +212,7 @@ export function ObservationQueryPanel() {
         }
 
         setCohortResult(data);
+        setCohortTaskScope(taskScope);
       }
     } catch {
       setError("Unexpected error occurred.");
@@ -216,21 +221,11 @@ export function ObservationQueryPanel() {
     }
   };
 
-  const downloadCSV = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   const exportToCSV = () => {
     if (results.length === 0) return;
-    const headers = Object.keys(results[0]).join(",");
-    const rows = results.map((row) => Object.values(row).join(",")).join("\n");
-    downloadCSV(headers + "\n" + rows, "query-results.csv");
+    const headers = Object.keys(results[0]);
+    const rows = results.map((row) => Object.values(row) as (string | number | null)[]);
+    downloadCsv("query-results.csv", [headers, ...rows]);
   };
 
   const filteredPropertyNames = filters
@@ -247,6 +242,11 @@ export function ObservationQueryPanel() {
     if (!cohortResult) return;
     const columns = deriveCohortColumns(cohortResult.populationStats, filteredPropertyNames);
     exportCohortToExcel(cohortResult, columns, "cohort.xlsx");
+  };
+
+  const exportPerDtBreakdownToCsv = () => {
+    if (!cohortResult || cohortResult.rows.length === 0) return;
+    downloadCsv(buildPerDtCsvFilename(cohortTaskScope), buildPerDtCsvRows(cohortResult));
   };
 
   return (
@@ -618,6 +618,13 @@ export function ObservationQueryPanel() {
               {showPerDtBreakdown && (
                 <div className="mt-4">
                   <CohortTable data={cohortResult} filteredPropertyNames={filteredPropertyNames} />
+                  <button
+                    onClick={exportPerDtBreakdownToCsv}
+                    disabled={cohortResult.rows.length === 0}
+                    className="mt-4 bg-green-600 hover:bg-green-500 transition px-6 py-2 rounded-lg font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Export CSV
+                  </button>
                 </div>
               )}
             </div>
